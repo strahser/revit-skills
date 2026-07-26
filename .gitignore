@@ -1,0 +1,16 @@
+# Logs
+*.log
+
+# opencode internal
+.opencode/config.json
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.idea/
+.vs/
+*.user
+*.suo
