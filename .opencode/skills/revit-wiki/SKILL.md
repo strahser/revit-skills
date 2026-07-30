@@ -25,6 +25,18 @@
 
 Подробнее: [agent-workflow.md](agent-workflow.md)
 
+## Плагины opencode
+
+Установлены 3 кастомных плагина в `~/.config/opencode/plugins/` (автозагрузка из любой сессии):
+
+| Плагин | Инструменты | Назначение |
+|--------|-------------|------------|
+| `html-tools` | `validate_html`, `fmt_html` | Проверка и форматирование HTML |
+| `threejs-tools` | `rvt_to_threejs`, `calc_bbox` | Revit→Three.js конвертация, вычисление bbox |
+| `revit-tools` | `build_revit`, `test_revit`, `revit_deploy` | Сборка, тесты, деплой .dll |
+
+Исходники: `E:\ПлагиныРевит\.opencode\plugins\`
+
 ## Быстрые факты
 
 - Проект: `E:\ПлагиныРевит\MepBimServer\` — C# ASP.NET + Revit плагин

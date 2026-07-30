@@ -36,9 +36,26 @@ revit-skills\
 
 ```
 E:\ПлагиныРевит\
-  ├── .opencode\           — Локальная opencode конфигурация
-  │   ├── opencode.json    — Основной конфиг (MCP + skills import)
-  │   └── skills\          — Локальные/временные навыки
-  ├── MepBimServer\        — Основной проект
-  └── revit-skills\        — Навыки + wiki
+  ├── .opencode\             — Локальная opencode конфигурация
+  │   ├── opencode.json      — MCP + skills.paths
+  │   ├── package.json       — Зависимости (@opencode-ai/plugin)
+  │   └── plugins\           — Кастомные плагины
+  │       ├── html-tools.js  — Валидация и форматирование HTML
+  │       ├── threejs-tools.js  — Revit→Three.js координаты, bbox
+  │       └── revit-tools.js    — Сборка, тесты, деплой плагина
+  ├── MepBimServer\          — Основной проект
+  └── revit-skills\          — Навыки + wiki
+```
+
+## Глобальные плагины (`~/.config/opencode/`)
+
+Те же 3 плагина продублированы в глобальную директорию, чтобы загружаться при открытии любого проекта:
+```
+~/.config/opencode/
+  ├── opencode.jsonc       — MCP + skills.paths
+  ├── package.json         — @opencode-ai/plugin
+  └── plugins/
+      ├── html-tools.js
+      ├── threejs-tools.js
+      └── revit-tools.js
 ```

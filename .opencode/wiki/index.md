@@ -18,3 +18,4 @@
 | Revit плагин | `MepBimServer\` (C#) |
 | Тестовый экспорт | `demo3D\ProjectExport_*.json` |
 | Навигация шапка | `ui\partials\site-header.html` |
+| Плагины opencode | `.opencode\plugins\` (html-tools, threejs-tools, revit-tools) |
