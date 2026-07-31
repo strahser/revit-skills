@@ -8,6 +8,7 @@
 - [3D Viewer](3d-viewer.md) — архитектура и отладка three.js вьювера
 - [Project Structure](project-structure.md) — структура проекта MepBimServer
 - [MCP Servers](mcp-servers.md) — документация MCP-серверов
+- [Clean Architecture V10](clean-architecture-v10.md) — HeatLossRevit2: Revit=presenter, Core=бизнес-логика, Base=DTO
 - [Agent Workflow](agent-workflow.md) — самоуправление: добавление скилов, обновление wiki, git push
 
 ## Быстрые ссылки
