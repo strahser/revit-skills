@@ -305,6 +305,17 @@ const TOP_PROMPTS = [
   { title: 'Экспорт геометрии для 3D-вьювера', text: 'Экспортируй геометрию Revit по .opencode/skills/revit-3d-export (BoundingBox/LocationCurve/LocationPoint fallback, Z-up feet → Y-up mm) и проверь в demo3D/Index.html.', category: 'viewer' },
 ];
 
+const DEFAULT_COMMON = [
+  'РАБОТАЙ ПО ИНСТРУКЦИЯМ ПРОЕКТА:',
+  '- .opencode/wiki/index.md — оглавление базы знаний (все страницы wiki)',
+  '- .opencode/wiki/user-guide.md — полное руководство по системе (развёртывание, MCP, GitHub, БД, промпты)',
+  '- .opencode/AGENTS.md — правила проекта и конвенции',
+  'ХОД РАБОТЫ ФИКСИРУЙ В SQLITE: .opencode/project.db через storage MCP',
+  '  (storage_mission/storage_task/storage_problem/storage_document/storage_review)',
+  'ГОТОВОЕ РЕЗУЛЬТАТ КОММИТЬ И ПУШИТЬ: git push skills master',
+  'ИСПОЛЬЗУЙ SKILLS: revit-api, revit-testing, revit-3d-export, revit-json-serialization, mcp-setup, threejs-viewer, revit-test-fixtures, revit-test-runner, revit-wiki'
+].join('\n');
+
 function json(res, data, code = 200) {
   const body = JSON.stringify(data, null, 2);
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -425,6 +436,10 @@ a:hover { text-decoration:underline; }
       <div class="group-title">Содержание</div>
       <div id="tree-guide"></div>
     </div>
+    <div class="group" id="group-prompt" style="display:none">
+      <div class="group-title">Промпты</div>
+      <div id="tree-prompt"></div>
+    </div>
   </aside>
   <main class="content" id="content">
     <div class="placeholder" id="placeholder">Выберите скил или страницу wiki слева, либо вкладку «База данных» / «Миссия».</div>
@@ -522,13 +537,14 @@ function renderMarkdown(src){
 /* ---- api ---- */
 async function get(path){ const r = await fetch(path); return r.json(); }
 
-function sidebarVisibleFor(tab){ return tab === 'skills' || tab === 'wiki' || tab === 'db' || tab === 'guide'; }
+function sidebarVisibleFor(tab){ return tab === 'skills' || tab === 'wiki' || tab === 'db' || tab === 'guide' || tab === 'prompt'; }
 function setSidebarVisible(show){ $('sidebar').style.display = show ? '' : 'none'; }
 function setTreeGroup(tab){
   $('group-skills').style.display = (tab === 'skills') ? '' : 'none';
   $('group-wiki').style.display  = (tab === 'wiki')  ? '' : 'none';
   $('group-db').style.display    = (tab === 'db')    ? '' : 'none';
   $('group-guide').style.display = (tab === 'guide') ? '' : 'none';
+  $('group-prompt').style.display = (tab === 'prompt') ? '' : 'none';
 }
 
 async function buildTrees(){
@@ -699,7 +715,7 @@ async function openDbItem(type, id){
 /* ---- prompt tab (v2: structured, common part, top5, delete, use, DB progress) ---- */
 function promptHtml(){
   return '<h1 style="margin:0 0 4px">Композитор промпта</h1>'+
-    '<p class="muted" style="margin:0 0 16px">Создавайте промпты, сохраняйте в библиотеку и запускайте через /task. Ход работы пишется в project.db.</p>'+
+    '<p class="muted" style="margin:0 0 16px">Создавайте промпты, сохраняйте в библиотеку и запускайте через /task. Ход работы пишется в project.db. <b>Слева — меню с Топ-5 и библиотекой.</b></p>'+
     '<div class="card"><h3>Общая часть команды (инструкции агентам)</h3>'+
       '<p class="muted" style="margin:0 0 8px">Добавляется к каждому /task — кратко объясняет агентам, как мы обрабатываем данные.</p>'+
       '<textarea id="prompt-common" rows="3" placeholder="Например: Работай по AGENTS.md и wiki/index.md. Результаты фиксируй в .opencode/project.db через storage MCP. Готовое коммить и пушить: git push skills master." style="width:100%;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font:13px/1.5 Consolas,monospace;resize:vertical"></textarea>'+
@@ -717,11 +733,7 @@ function promptHtml(){
         '<button id="prompt-save" class="btn primary">Сохранить в библиотеку</button>'+
         '<button id="prompt-copy" class="btn">Копировать /task</button>'+
       '</div>'+
-    '</div>'+
-    '<h3 style="margin:12px 0 8px">Топ-5 основных промптов</h3>'+
-    '<div id="prompt-top"><div class="muted">Загрузка...</div></div>'+
-    '<h3 style="margin:16px 0 8px">Библиотека промптов</h3>'+
-    '<div id="prompt-drafts"><div class="muted">Загрузка...</div></div>';
+    '</div>';
 }
 function flash(msg){
   let el = $('flash');
@@ -775,7 +787,7 @@ function bindPromptHandlers(){
     await postJson('/api/prompts', { title: title, text: text, category: category });
     $('prompt-text').value = ''; $('prompt-title').value = '';
     flash('Промпт сохранён');
-    loadDrafts();
+    loadPromptTree();
   });
   $('prompt-copy').addEventListener('click', function(){
     const text = $('prompt-text').value.trim();
@@ -788,81 +800,45 @@ function bindPromptHandlers(){
     flash('Общая часть сохранена');
   });
 }
-async function loadTop(){
-  const data = await get('/api/prompts');
-  const top = data.top || [];
-  const el = $('prompt-top');
-  if(!el) return;
-  if(!top.length){ el.innerHTML = '<div class="muted">Нет</div>'; return; }
-  el.innerHTML = top.map(function(p, i){
-    return '<div class="tree-item" data-top="'+i+'">'+
-      '<span class="icon">⭐</span><span class="name">'+esc(p.title)+'</span>'+
-      '<span class="count">'+catBadge(p.category)+'</span></div>';
-  }).join('');
-  el.querySelectorAll('[data-top]').forEach(function(it){
-    it.addEventListener('click', function(){
-      const p = top[+it.dataset.top];
-      if(!p) return;
-      $('prompt-title').value = p.title;
-      $('prompt-text').value = p.text;
-      $('prompt-category').value = p.category || 'general';
-      flash('Топ-промпт загружен');
-    });
-  });
-}
 async function loadCommon(){
   const data = await get('/api/prompts');
   if($('prompt-common')) $('prompt-common').value = data.common || '';
 }
-async function loadDrafts(){
+async function loadPromptTree(){
   const data = await get('/api/prompts');
+  const top = data.top || [];
   const drafts = data.prompts || [];
-  const el = $('prompt-drafts');
+  const el = $('tree-prompt');
   if(!el) return;
-  if(!drafts.length){ el.innerHTML = '<div class="muted">Библиотека пуста — создайте первый промпт выше.</div>'; return; }
-  el.innerHTML = drafts.map(function(dr, i){
-    return '<div class="card" style="margin-bottom:10px;padding:12px">'+
-      '<div style="display:flex;gap:12px;align-items:flex-start">'+
-        '<div style="flex:1;min-width:0">'+
-          '<div style="font-weight:600;margin-bottom:2px">'+esc(dr.title||('#'+dr.id))+' '+catBadge(dr.category)+'</div>'+
-          '<div style="white-space:pre-wrap;word-break:break-word">'+esc(dr.text)+'</div>'+
-          '<div class="muted" style="font-size:11px;margin-top:6px">'+esc((dr.created_at||'').slice(0,16))+
-            (dr.executions ? ' · использован '+dr.executions+' раз' : '')+'</div>'+
-        '</div>'+
-        '<div style="display:flex;flex-direction:column;gap:6px;min-width:140px">'+
-          '<button class="btn" data-act="load" data-idx="'+i+'">Загрузить</button>'+
-          '<button class="btn" data-act="copy" data-idx="'+i+'">Копировать /task</button>'+
-          '<button class="btn" data-act="use" data-idx="'+i+'">Использовать</button>'+
-          '<button class="btn" data-act="del" data-idx="'+i+'" style="border-color:#3b1212;color:var(--red)">Удалить</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-  const btns = el.querySelectorAll('button[data-act]');
-  for(const b of btns){
-    b.addEventListener('click', async function(){
-      const dr = drafts[+b.dataset.idx];
-      if(!dr) return;
-      if(b.dataset.act === 'load'){
-        $('prompt-title').value = dr.title || '';
-        $('prompt-text').value = dr.text;
-        $('prompt-category').value = dr.category || 'general';
-        flash('Промпт загружен');
-      } else if(b.dataset.act === 'copy'){
-        copyTask(dr.title, dr.text, currentCommon());
-      } else if(b.dataset.act === 'use'){
-        await postJson('/api/prompts/use?id='+encodeURIComponent(dr.id), {});
-        copyTask(dr.title, dr.text, currentCommon());
-        flash('Использовано, ход работы записан в БД');
-        loadDrafts();
-      } else if(b.dataset.act === 'del'){
-        if(!confirm('Удалить промпт «'+(dr.title||dr.id)+'»?')) return;
-        await delReq('/api/prompts?id='+encodeURIComponent(dr.id));
-        flash('Промпт удалён');
-        loadDrafts();
-      }
-    });
+  let html = '';
+  html += '<div class="group-title" style="font-size:11px;color:var(--muted);text-transform:uppercase;padding:4px 8px">Топ-5</div>';
+  html += top.map((p,i) =>
+    '<div class="tree-item" data-kind="top" data-idx="'+i+'">'+
+      '<span class="icon">⭐</span><span class="name">'+esc(p.title)+'</span>'+
+      '<span class="count">'+catBadge(p.category)+'</span></div>'
+  ).join('');
+  if(drafts.length){
+    html += '<div class="group-title" style="font-size:11px;color:var(--muted);text-transform:uppercase;padding:4px 8px;margin-top:10px">Библиотека ('+drafts.length+')</div>';
+    html += drafts.map((p,i) =>
+      '<div class="tree-item" data-kind="draft" data-idx="'+i+'">'+
+        '<span class="icon">📋</span><span class="name">'+esc(p.title||('#'+p.id))+'</span>'+
+        '<span class="count">'+(p.executions||0)+'</span></div>'
+    ).join('');
   }
+  el.innerHTML = html;
+  el.querySelectorAll('.tree-item').forEach(function(it){
+    it.addEventListener('click', function(){
+      el.querySelectorAll('.tree-item').forEach(x=>x.classList.remove('active'));
+      it.classList.add('active');
+      const p = it.dataset.kind === 'top' ? top[+it.dataset.idx] : drafts[+it.dataset.idx];
+      if(!p) return;
+      $('prompt-title').value = p.title || '';
+      $('prompt-text').value = p.text;
+      $('prompt-category').value = p.category || 'general';
+      flash('Промпт загружен в форму');
+      document.getElementById('content').scrollTop = 0;
+    });
+  });
 }
 
 async function loadTab(tab){
@@ -890,12 +866,12 @@ async function loadTab(tab){
     return;
   }
   if(tab==='prompt'){
-    setSidebarVisible(false);
+    setSidebarVisible(true);
+    setTreeGroup('prompt');
     $('content').innerHTML = promptHtml();
     bindPromptHandlers();
     loadCommon();
-    loadTop();
-    loadDrafts();
+    loadPromptTree();
     return;
   }
   if(tab==='guide'){
@@ -1009,7 +985,8 @@ const server = createServer((req, res) => {
       return item ? json(res, item) : json(res, { error: 'item not found' }, 404);
     }
     if (url.pathname === '/api/prompts' && req.method === 'GET') {
-      return json(res, { common: readCommonPart(), prompts: readPrompts(), top: TOP_PROMPTS });
+      const common = readCommonPart() || DEFAULT_COMMON;
+      return json(res, { common, prompts: readPrompts(), top: TOP_PROMPTS });
     }
     if (url.pathname === '/api/prompts' && req.method === 'POST') {
       let body = '';
