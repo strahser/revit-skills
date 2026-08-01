@@ -189,7 +189,7 @@ nav button.active { background:var(--accent); color:#0b0f17; border-color:var(--
 .tree-item .count { margin-left:auto; font-size:11px; color:var(--muted); }
 .tree-children { padding-left:18px; }
 .tree-children.hidden { display:none; }
-.content { flex:1; overflow:auto; padding:20px 28px; max-width:1100px; }
+.content { flex:1; overflow:auto; padding:20px 28px; }
 .placeholder { color:var(--muted); padding:60px 20px; text-align:center; }
 .doc-meta { display:flex; gap:12px; font-size:12px; color:var(--muted); padding:10px 0 14px; border-bottom:1px solid var(--border); margin-bottom:18px; }
 .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px; }
@@ -350,6 +350,10 @@ async function get(path){ const r = await fetch(path); return r.json(); }
 
 function sidebarVisibleFor(tab){ return tab === 'skills' || tab === 'wiki'; }
 function setSidebarVisible(show){ $('sidebar').style.display = show ? '' : 'none'; }
+function setTreeGroup(tab){
+  $('group-skills').style.display = (tab === 'skills') ? '' : 'none';
+  $('group-wiki').style.display  = (tab === 'wiki')  ? '' : 'none';
+}
 
 async function buildTrees(){
   const [skills, wiki] = await Promise.all([get('/api/skills'), get('/api/wiki')]);
@@ -368,7 +372,9 @@ function onTreeClick(e){
   if(!item) return;
   document.querySelectorAll('.tree-item').forEach(x=>x.classList.remove('active'));
   item.classList.add('active');
-  state.tab = item.dataset.kind;
+  const tab = item.dataset.kind === 'skill' ? 'skills' : 'wiki';
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active', x.dataset.tab === tab));
+  state.tab = tab;
   openDoc(item.dataset.kind, item.dataset.name);
 }
 async function openDoc(kind, name){
@@ -395,7 +401,8 @@ function badge(status){
 async function loadTab(tab){
   if(tab==='skills' || tab==='wiki'){
     setSidebarVisible(true);
-    if(state.selection && state.selection.kind===tab) openDoc(state.selection.kind, state.selection.name);
+    setTreeGroup(tab);
+    if(state.selection && state.selection.kind === (tab==='skills' ? 'skill' : 'wiki')) openDoc(state.selection.kind, state.selection.name);
     else $('content').innerHTML = '<div class="placeholder">Выберите элемент слева.</div>';
     return;
   }
