@@ -3,3 +3,24 @@ package.json
 package-lock.json
 bun.lock
 config.json
+
+# orchestrator mission state (runtime artifacts)
+mission-ledger.jsonl
+context.md
+todo.md
+summary.md
+work-log.md
+status.md
+sync-issues.md
+integration-status.md
+agents.json
+archive/
+docs/
+unit-tests/
+.opencode-orchestrator/
+
+# project storage (SQLite + logs)
+project.db
+project.db-wal
+project.db-shm
+storage-mcp.log

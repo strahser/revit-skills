@@ -1,3 +1,8 @@
+---
+name: mcp-setup
+description: Configure Model Context Protocol (MCP) servers for Revit + 3D development. Use when adding, enabling, or debugging MCP servers (opencode-browser, playwright, threejs-devtools, r3f-mcp, sqlite/storage) in opencode.json.
+---
+
 # MCP Server Setup
 
 Настройка Model Context Protocol (MCP) серверов для Revit + 3D разработки.

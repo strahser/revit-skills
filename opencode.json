@@ -1,0 +1,165 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/nemotron-3-ultra-free",
+  "small_model": "opencode/north-mini-code-free",
+  "instructions": ["AGENTS.md", ".opencode/wiki/index.md"],
+  "skills": {
+    "paths": [".opencode/skills"]
+  },
+  "references": {
+    "revit-skills": {
+      "repository": "strahser/revit-skills",
+      "branch": "main",
+      "description": "Репозиторий навыков и базы знаний по Revit: .opencode/skills/ и .opencode/wiki/. Используй для контекста проекта Revit-плагинов и 3D-вьювера."
+    }
+  },
+  "permission": {
+    "question": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "todowrite": "allow",
+    "read": "allow",
+    "edit": "allow",
+    "write": "allow",
+    "bash": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "task": "allow",
+    "lsp": "allow",
+    "skill": "allow"
+  },
+  "compaction": {
+    "auto": true,
+    "tail_turns": 6,
+    "reserved": 20000
+  },
+  "agent": {
+    "Commander": {
+      "model": "opencode/nemotron-3-ultra-free"
+    },
+    "Planner": {
+      "model": "opencode/nemotron-3-ultra-free"
+    },
+    "Worker": {
+      "model": "opencode/deepseek-v4-flash-free"
+    },
+    "Reviewer": {
+      "model": "opencode/big-pickle",
+      "permission": {
+        "edit": "deny",
+        "write": "deny",
+        "read": "allow",
+        "grep": "allow",
+        "glob": "allow",
+        "bash": "allow",
+        "question": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "revit-engineer": {
+      "description": "Ты инженер-конструктор, эксперт по Revit API C#. Работаешь с геометрией, тепловыми расчетами, солидами, BooleanOperationsUtils. Используй Context7 для актуальных API docs. Для сложной геометрии и рассуждений — Nemotron 3 Ultra. Для анализа больших файлов — DeepSeek V4 Flash. Для мультимодальных задач (схемы + код) — MiMo-V2.5.",
+      "prompt": "Ты revit-engineer — эксперт по Revit API C# и инженерной геометрии. Используй скилы revit-api, revit-testing, revit-3d-export при работе. Отвечай на русском. Для сложных геометрических рассуждений применяй sequential-thinking.",
+      "model": "opencode/nemotron-3-ultra-free",
+      "mode": "subagent"
+    },
+    "code-reviewer": {
+      "description": "Ты ревьюер C# кода для Revit плагинов. Проверяй: обработку исключений BooleanOperationsUtils, управление транзакциями, производительность, утечки памяти, соответствие Revit API best practices.",
+      "prompt": "Ты code-reviewer — независимый ревьюер C# кода Revit-плагинов. Проверяй: исключения BooleanOperationsUtils, транзакции, производительность, утечки памяти, best practices. Отвечай на русском. Ты НЕ можешь редактировать файлы — только ревью.",
+      "model": "opencode/big-pickle",
+      "mode": "subagent",
+      "permission": {
+        "edit": "deny",
+        "write": "deny",
+        "read": "allow",
+        "grep": "allow",
+        "glob": "allow",
+        "bash": "allow"
+      }
+    }
+  },
+  "provider": {
+    "opencode": {
+      "models": {
+        "big-pickle": {
+          "name": "big-pickle",
+          "limit": { "context": 200000, "output": 64000 }
+        },
+        "nemotron-3-ultra-free": {
+          "name": "nemotron-3-ultra-free",
+          "limit": { "context": 1000000, "output": 128000 }
+        },
+        "deepseek-v4-flash-free": {
+          "name": "deepseek-v4-flash-free",
+          "limit": { "context": 1000000, "output": 128000 }
+        },
+        "mimo-v2.5-free": {
+          "name": "mimo-v2.5-free",
+          "limit": { "context": 1000000, "output": 128000 }
+        },
+        "north-mini-code-free": {
+          "name": "north-mini-code-free",
+          "limit": { "context": 256000, "output": 64000 }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "storage": {
+      "type": "local",
+      "command": ["node", ".opencode/storage-mcp.mjs"],
+      "enabled": true
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true,
+      "headers": {
+        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+      }
+    },
+    "memory": {
+      "type": "local",
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-memory\\dist\\index.js"],
+      "enabled": true
+    },
+    "sequential-thinking": {
+      "type": "local",
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-sequential-thinking\\dist\\index.js"],
+      "enabled": true
+    },
+    "pdf": {
+      "type": "local",
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-pdf\\dist\\index.js"],
+      "enabled": true
+    },
+    "filesystem": {
+      "type": "local",
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-filesystem\\dist\\index.js", "D:\\Плагины Ревит\\HeatEnergyCalculator"],
+      "enabled": true
+    },
+    "git": {
+      "type": "local",
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@liangshanli\\mcp-server-git\\start-server.js", "D:\\Плагины Ревит\\HeatEnergyCalculator"],
+      "enabled": false
+    }
+  },
+  "plugin": [
+    [
+      "opencode-orchestrator",
+      {
+        "defaultConcurrency": 4,
+        "agentConcurrency": {
+          "commander": 1,
+          "planner": 4,
+          "worker": 4,
+          "reviewer": 4
+        },
+        "missionLoop": {
+          "ledger": true,
+          "markdownMemory": true,
+          "maxEvidenceEvents": 50
+        }
+      }
+    ]
+  ]
+}

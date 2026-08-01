@@ -1,3 +1,8 @@
+---
+name: revit-wiki
+description: Project wiki knowledge base in .opencode/wiki/. Use when starting a session to read project context from wiki/index.md, or when updating wiki pages and self-management (adding skills, updating README, pushing to GitHub).
+---
+
 # Revit Project Wiki
 
 Проектная wiki находится в `E:\ПлагиныРевит\revit-skills\.opencode\wiki\`.

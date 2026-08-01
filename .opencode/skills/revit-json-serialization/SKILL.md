@@ -1,3 +1,8 @@
+---
+name: revit-json-serialization
+description: Serialize Revit objects to JSON for the 3D viewer. Use when defining JSON keys, handling invariant-culture decimals, trimming null fields, or serializing ElementId in C# (camelCase keys, ElementId as int).
+---
+
 # Revit JSON Serialization
 
 Правила сериализации объектов Revit в JSON для 3D-вьювера.

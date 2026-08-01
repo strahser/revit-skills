@@ -1,3 +1,8 @@
+---
+name: threejs-viewer
+description: Architecture and support rules for the Three.js 3D viewer (demo3D/Index.html). Use when building, modifying, or debugging the viewer scene, Revit-to-Three.js coordinate mapping, fallback geometry, or camera controls.
+---
+
 # Three.js 3D Viewer
 
 Архитектура и правила поддержки вьювера (`demo3D/Index.html`).

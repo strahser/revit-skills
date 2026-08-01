@@ -1,3 +1,8 @@
+---
+name: revit-3d-export
+description: Export Revit geometry for the Three.js 3D viewer. Use when converting Revit coordinates (Z-up feet) to Three.js (Y-up mm), writing export JSON, or applying the BoundingBox/LocationCurve/LocationPoint fallback chain.
+---
+
 # Revit 3D Geometry Export
 
 Правила экспорта геометрии из Revit для отображения в Three.js 3D-вьювере.
