@@ -334,6 +334,7 @@ a:hover { text-decoration:underline; }
   <button data-tab="db">База данных</button>
   <button data-tab="mission">Миссия</button>
   <button data-tab="prompt">Промпт</button>
+  <button data-tab="guide">Инструкция</button>
 </nav>
 <div class="layout">
   <aside class="sidebar" id="sidebar">
@@ -737,6 +738,16 @@ async function loadTab(tab){
     loadDrafts();
     return;
   }
+  if(tab==='guide'){
+    setSidebarVisible(false);
+    const g = await get('/api/guide');
+    if(g.error){ $('content').innerHTML = '<div class="empty">'+esc(g.error)+'</div>'; return; }
+    $('content').innerHTML =
+      '<h1 style="margin:0 0 4px">'+esc(g.title)+'</h1>'+
+      '<div class="doc-meta"><span>'+esc(g.path)+'</span><span>'+g.size+' B</span><span>'+esc(g.modified.slice(0,16))+'</span></div>'+
+      '<div class="md">'+renderMarkdown(g.content)+'</div>';
+    return;
+  }
   setSidebarVisible(false);
   if(tab==='mission'){
     const m = await get('/api/mission');
@@ -831,6 +842,10 @@ const server = createServer((req, res) => {
       return;
     }
     if (url.pathname === '/api/mission') return json(res, readMissionFiles());
+    if (url.pathname === '/api/guide') {
+      const d = readWikiContent('user-guide.md');
+      return d ? json(res, { title: 'User Guide', path: d.path, size: d.size, modified: d.modified, content: d.content }) : json(res, { error: 'user-guide.md not found' }, 404);
+    }
     json(res, { error: 'not found' }, 404);
   } catch (e) {
     json(res, { error: String(e && e.message || e) }, 500);
