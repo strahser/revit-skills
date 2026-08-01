@@ -350,6 +350,10 @@ a:hover { text-decoration:underline; }
       <div class="group-title">База данных</div>
       <div id="tree-db"></div>
     </div>
+    <div class="group" id="group-guide" style="display:none">
+      <div class="group-title">Содержание</div>
+      <div id="tree-guide"></div>
+    </div>
   </aside>
   <main class="content" id="content">
     <div class="placeholder" id="placeholder">Выберите скил или страницу wiki слева, либо вкладку «База данных» / «Миссия».</div>
@@ -447,12 +451,13 @@ function renderMarkdown(src){
 /* ---- api ---- */
 async function get(path){ const r = await fetch(path); return r.json(); }
 
-function sidebarVisibleFor(tab){ return tab === 'skills' || tab === 'wiki' || tab === 'db'; }
+function sidebarVisibleFor(tab){ return tab === 'skills' || tab === 'wiki' || tab === 'db' || tab === 'guide'; }
 function setSidebarVisible(show){ $('sidebar').style.display = show ? '' : 'none'; }
 function setTreeGroup(tab){
   $('group-skills').style.display = (tab === 'skills') ? '' : 'none';
   $('group-wiki').style.display  = (tab === 'wiki')  ? '' : 'none';
   $('group-db').style.display    = (tab === 'db')    ? '' : 'none';
+  $('group-guide').style.display = (tab === 'guide') ? '' : 'none';
 }
 
 async function buildTrees(){
@@ -739,13 +744,35 @@ async function loadTab(tab){
     return;
   }
   if(tab==='guide'){
-    setSidebarVisible(false);
+    setSidebarVisible(true);
+    setTreeGroup('guide');
     const g = await get('/api/guide');
     if(g.error){ $('content').innerHTML = '<div class="empty">'+esc(g.error)+'</div>'; return; }
-    $('content').innerHTML =
+    // Render content with IDs on H2 for anchor scrolling
+    const rendered = renderMarkdown(g.content);
+    const headerHtml =
       '<h1 style="margin:0 0 4px">'+esc(g.title)+'</h1>'+
-      '<div class="doc-meta"><span>'+esc(g.path)+'</span><span>'+g.size+' B</span><span>'+esc(g.modified.slice(0,16))+'</span></div>'+
-      '<div class="md">'+renderMarkdown(g.content)+'</div>';
+      '<div class="doc-meta"><span>'+esc(g.path)+'</span><span>'+g.size+' B</span><span>'+esc(g.modified.slice(0,16))+'</span></div>';
+    $('content').innerHTML = headerHtml + '<div class="md">'+rendered+'</div>';
+    // Assign IDs to H2 elements for anchor scrolling
+    const h2s = $('content').querySelectorAll('.md h2');
+    h2s.forEach((h, i) => { h.id = 'sec-'+i; });
+    // Build sidebar tree from H2s
+    const items = Array.from(h2s).map((h, i) =>
+      '<div class="tree-item" data-sec="sec-'+i+'">'+
+        '<span class="icon">📑</span><span class="name">'+esc(h.textContent)+'</span></div>'
+    ).join('');
+    $('tree-guide').innerHTML = items;
+    // Bind clicks: scroll to section
+    $('tree-guide').addEventListener('click', (e) => {
+      const item = e.target.closest('.tree-item');
+      if(!item) return;
+      document.querySelectorAll('#tree-guide .tree-item').forEach(x=>x.classList.remove('active'));
+      item.classList.add('active');
+      const secId = item.dataset.sec;
+      const el = document.getElementById(secId);
+      if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    });
     return;
   }
   setSidebarVisible(false);
