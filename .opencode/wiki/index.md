@@ -12,6 +12,7 @@
 - [Dashboard и OpenContext](dashboard-opencontext.md) — локальный веб-дашборд и глобальная база знаний
 - [Agent Workflow](agent-workflow.md) — самоуправление: добавление скилов, обновление wiki, git push
 - [Orchestrator Guide](orchestrator-guide.md) — как пользоваться Revit Skills Orchestrator
+- [User Guide](user-guide.md) — полное руководство: развёртывание, использование, скилы, GitHub, БД, отслеживание промптов
 
 ## Быстрые ссылки
 
