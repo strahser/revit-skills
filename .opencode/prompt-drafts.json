@@ -45,6 +45,87 @@
       "last_used": null,
       "updated_at": "2026-08-01T12:45:21.684Z",
       "status": "active"
+    },
+    {
+      "id": 1785616906325,
+      "title": "Развернуть/починить MCP-серверы",
+      "text": "Проверь все MCP-серверы в opencode.json (handshake через stdio JSON-RPC), исправь конфигурацию, обнови .opencode/wiki/mcp-servers.md и запиши результат в project.db.",
+      "category": "mcp",
+      "tags": [
+        "mcp",
+        "setup"
+      ],
+      "favorite": true,
+      "created_at": "2026-08-01T20:41:46.325Z",
+      "updated_at": "2026-08-01T20:41:46.326Z",
+      "status": "active",
+      "executions": 0,
+      "last_used": null
+    },
+    {
+      "id": 1785616906327,
+      "title": "Ревью кода Revit-плагина",
+      "text": "Проведи независимое ревью кода Revit-плагина по .opencode/skills/revit-api: транзакции, исключения BooleanOperationsUtils, производительность, best practices. Запиши review_rounds в project.db.",
+      "category": "revit",
+      "tags": [
+        "revit",
+        "review"
+      ],
+      "favorite": true,
+      "created_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:41:46.326Z",
+      "status": "active",
+      "executions": 0,
+      "last_used": null
+    },
+    {
+      "id": 1785616906328,
+      "title": "Обновить wiki/документацию",
+      "text": "Обнови базу знаний .opencode/wiki/ по актуальному состоянию проекта, добавь ссылку в index.md, закоммить и запушь в GitHub (skills master).",
+      "category": "docs",
+      "tags": [
+        "docs",
+        "wiki"
+      ],
+      "favorite": true,
+      "created_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:41:46.326Z",
+      "status": "active",
+      "executions": 0,
+      "last_used": null
+    },
+    {
+      "id": 1785616906329,
+      "title": "Написать тесты для Revit API",
+      "text": "Напиши RevitApiTest-тесты по .opencode/skills/revit-testing и revit-test-fixtures, выполни их через revit-test-runner и зафиксируй результаты в project.db.",
+      "category": "revit",
+      "tags": [
+        "revit",
+        "test"
+      ],
+      "favorite": true,
+      "created_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:41:46.326Z",
+      "status": "active",
+      "executions": 0,
+      "last_used": null
+    },
+    {
+      "id": 1785616906330,
+      "title": "Экспорт геометрии для 3D-вьювера",
+      "text": "Экспортируй геометрию Revit по .opencode/skills/revit-3d-export (BoundingBox/LocationCurve/LocationPoint fallback, Z-up feet → Y-up mm) и проверь в demo3D/Index.html.",
+      "category": "viewer",
+      "tags": [
+        "viewer",
+        "export",
+        "threejs"
+      ],
+      "favorite": true,
+      "created_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:41:46.326Z",
+      "status": "active",
+      "executions": 0,
+      "last_used": null
     }
   ]
 }

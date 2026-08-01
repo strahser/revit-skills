@@ -239,14 +239,33 @@ function writePrompts(prompts, common) {
   writeFileSync(PROMPTS_PATH, JSON.stringify(data, null, 2) + '\n', 'utf8');
 }
 
-function savePrompt({ title, text, category }) {
+function savePrompt(body) {
   const prompts = readPrompts();
   const common = readCommonPart();
+  const tags = Array.isArray(body.tags)
+    ? body.tags.map(String).map(s => s.trim()).filter(Boolean)
+    : (typeof body.tags === 'string' ? body.tags.split(',').map(s => s.trim()).filter(Boolean) : []);
+  // update existing
+  if (body.id) {
+    const p = prompts.find(x => String(x.id) === String(body.id));
+    if (p) {
+      if (body.title !== undefined) p.title = String(body.title).trim() || p.title;
+      if (body.text !== undefined) p.text = String(body.text);
+      if (body.category !== undefined) p.category = String(body.category).trim() || p.category;
+      if (body.tags !== undefined) p.tags = tags;
+      if (body.favorite !== undefined) p.favorite = !!body.favorite;
+      p.updated_at = new Date().toISOString();
+      writePrompts(prompts, common);
+      return p;
+    }
+  }
   const item = {
     id: Date.now(),
-    title: String(title || '').trim() || ('Промпт ' + (prompts.length + 1)),
-    text: String(text || ''),
-    category: String(category || 'general').trim() || 'general',
+    title: String(body.title || '').trim() || ('Промпт ' + (prompts.length + 1)),
+    text: String(body.text || ''),
+    category: String(body.category || 'general').trim() || 'general',
+    tags,
+    favorite: !!body.favorite,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     status: 'active',
@@ -266,6 +285,17 @@ function deletePrompt(id) {
   prompts.splice(idx, 1);
   writePrompts(prompts, common);
   return true;
+}
+
+function toggleFavorite(id) {
+  const prompts = readPrompts();
+  const common = readCommonPart();
+  const p = prompts.find(x => String(x.id) === String(id));
+  if (!p) return null;
+  p.favorite = !p.favorite;
+  p.updated_at = new Date().toISOString();
+  writePrompts(prompts, common);
+  return p;
 }
 
 function saveCommonPart(text) {
@@ -297,13 +327,29 @@ function logPromptProgress(detail) {
   } catch (e) { return false; }
 }
 
-const TOP_PROMPTS = [
-  { title: 'Развернуть/починить MCP-серверы', text: 'Проверь все MCP-серверы в opencode.json (handshake через stdio JSON-RPC), исправь конфигурацию, обнови .opencode/wiki/mcp-servers.md и запиши результат в project.db.', category: 'mcp' },
-  { title: 'Ревью кода Revit-плагина', text: 'Проведи независимое ревью кода Revit-плагина по .opencode/skills/revit-api: транзакции, исключения BooleanOperationsUtils, производительность, best practices. Запиши review_rounds в project.db.', category: 'revit' },
-  { title: 'Обновить wiki/документацию', text: 'Обнови базу знаний .opencode/wiki/ по актуальному состоянию проекта, добавь ссылку в index.md, закоммить и запушь в GitHub (skills master).', category: 'docs' },
-  { title: 'Написать тесты для Revit API', text: 'Напиши RevitApiTest-тесты по .opencode/skills/revit-testing и revit-test-fixtures, выполни их через revit-test-runner и зафиксируй результаты в project.db.', category: 'revit' },
-  { title: 'Экспорт геометрии для 3D-вьювера', text: 'Экспортируй геометрию Revit по .opencode/skills/revit-3d-export (BoundingBox/LocationCurve/LocationPoint fallback, Z-up feet → Y-up mm) и проверь в demo3D/Index.html.', category: 'viewer' },
+const SEED_PROMPTS = [
+  { title: 'Развернуть/починить MCP-серверы', text: 'Проверь все MCP-серверы в opencode.json (handshake через stdio JSON-RPC), исправь конфигурацию, обнови .opencode/wiki/mcp-servers.md и запиши результат в project.db.', category: 'mcp', tags: ['mcp', 'setup'], favorite: true },
+  { title: 'Ревью кода Revit-плагина', text: 'Проведи независимое ревью кода Revit-плагина по .opencode/skills/revit-api: транзакции, исключения BooleanOperationsUtils, производительность, best practices. Запиши review_rounds в project.db.', category: 'revit', tags: ['revit', 'review'], favorite: true },
+  { title: 'Обновить wiki/документацию', text: 'Обнови базу знаний .opencode/wiki/ по актуальному состоянию проекта, добавь ссылку в index.md, закоммить и запушь в GitHub (skills master).', category: 'docs', tags: ['docs', 'wiki'], favorite: true },
+  { title: 'Написать тесты для Revit API', text: 'Напиши RevitApiTest-тесты по .opencode/skills/revit-testing и revit-test-fixtures, выполни их через revit-test-runner и зафиксируй результаты в project.db.', category: 'revit', tags: ['revit', 'test'], favorite: true },
+  { title: 'Экспорт геометрии для 3D-вьювера', text: 'Экспортируй геометрию Revit по .opencode/skills/revit-3d-export (BoundingBox/LocationCurve/LocationPoint fallback, Z-up feet → Y-up mm) и проверь в demo3D/Index.html.', category: 'viewer', tags: ['viewer', 'export', 'threejs'], favorite: true },
 ];
+
+function ensureSeeded() {
+  try {
+    const prompts = readPrompts();
+    const common = readCommonPart();
+    let changed = false;
+    let n = 0;
+    for (const s of SEED_PROMPTS) {
+      if (!prompts.some(p => p.title === s.title)) {
+        prompts.push({ id: Date.now() + (n++), ...s, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'active', executions: 0, last_used: null });
+        changed = true;
+      }
+    }
+    if (changed) writePrompts(prompts, common);
+  } catch (e) {}
+}
 
 const DEFAULT_COMMON = [
   'РАБОТАЙ ПО ИНСТРУКЦИЯМ ПРОЕКТА:',
@@ -361,6 +407,13 @@ nav button.active { background:var(--accent); color:#0b0f17; border-color:var(--
 .tree-item .tree-del:hover { background:#c0392b; color:#fff; }
 .tree-item.active .tree-del { color:#9db4cc; }
 .tree-item.active .tree-del:hover { background:#c0392b; color:#fff; }
+.tree-item .tags { display:flex; gap:4px; overflow:hidden; flex-shrink:1; min-width:0; }
+.tree-item .tag { background:var(--panel2); border:1px solid var(--border); color:var(--muted); font-size:10px; padding:1px 6px; border-radius:8px; white-space:nowrap; }
+.tree-item .tree-fav { border:none; background:transparent; color:#f5b942; font-size:13px; cursor:pointer; padding:2px 5px; border-radius:4px; line-height:1; flex:0 0 auto; }
+.tree-item .tree-fav:hover { background:#f5b942; color:#1a1a1a; }
+.tree-item.active .tree-fav { color:#ffd76a; }
+#tree-prompt .tree-item .name { flex:1; min-width:0; }
+.tree-empty { padding:6px 10px; font-size:11px; color:var(--muted); font-style:italic; }
 .tree-children { padding-left:18px; }
 .tree-children.hidden { display:none; }
 .content { flex:1; overflow:auto; padding:20px 28px; }
@@ -451,7 +504,7 @@ a:hover { text-decoration:underline; }
 </div>
 <script>
 const $ = (id) => document.getElementById(id);
-const state = { tab: 'skills', selection: null, skills: [], wiki: [] };
+const state = { tab: 'skills', selection: null, skills: [], wiki: [], editingPromptId: null };
 
 function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -716,10 +769,10 @@ async function openDbItem(type, id){
   }
 }
 
-/* ---- prompt tab (v2: structured, common part, top5, delete, use, DB progress) ---- */
+/* ---- prompt tab (v3: library + tags + favorites + delete + use, DB progress) ---- */
 function promptHtml(){
   return '<h1 style="margin:0 0 4px">Композитор промпта</h1>'+
-    '<p class="muted" style="margin:0 0 16px">Создавайте промпты, сохраняйте в библиотеку и запускайте через /task. Ход работы пишется в project.db. <b>Слева — меню с Топ-5 и библиотекой.</b></p>'+
+    '<p class="muted" style="margin:0 0 16px">Создавайте промпты, сохраняйте в библиотеку (с тегами) и запускайте через /task. Ход работы пишется в project.db. <b>Слева — меню: ⭐ Избранное и 📋 Библиотека.</b></p>'+
     '<div class="card"><h3>Общая часть команды (инструкции агентам)</h3>'+
       '<p class="muted" style="margin:0 0 8px">Добавляется к каждому /task — кратко объясняет агентам, как мы обрабатываем данные.</p>'+
       '<textarea id="prompt-common" rows="3" placeholder="Например: Работай по AGENTS.md и wiki/index.md. Результаты фиксируй в .opencode/project.db через storage MCP. Готовое коммить и пушить: git push skills master." style="width:100%;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font:13px/1.5 Consolas,monospace;resize:vertical"></textarea>'+
@@ -732,10 +785,15 @@ function promptHtml(){
           '<option value="general">general</option><option value="revit">revit</option><option value="mcp">mcp</option><option value="docs">docs</option><option value="viewer">viewer</option><option value="test">test</option>'+
         '</select>'+
       '</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">'+
+        '<input id="prompt-tags" placeholder="Теги через запятую (напр. revit, clash, mcp)" style="flex:1;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font:13px Consolas,monospace">'+
+        '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);white-space:nowrap;cursor:pointer"><input type="checkbox" id="prompt-fav"> ⭐ избранное</label>'+
+      '</div>'+
       '<textarea id="prompt-text" rows="6" placeholder="Описание миссии..." style="width:100%;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font:13px/1.5 Consolas,monospace;resize:vertical"></textarea>'+
-      '<div style="display:flex;gap:8px;margin-top:8px">'+
+      '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'+
         '<button id="prompt-save" class="btn primary">Сохранить в библиотеку</button>'+
         '<button id="prompt-copy" class="btn">Копировать /task</button>'+
+        '<button id="prompt-use" class="btn">▶ Использовать (копия + лог в БД)</button>'+
       '</div>'+
     '</div>';
 }
@@ -778,18 +836,20 @@ async function copyTask(title, text, common){
   }
 }
 function currentCommon(){ return ($('prompt-common') ? $('prompt-common').value : '') || ''; }
-function catBadge(cat){
-  const map={revit:'info',mcp:'info',docs:'info',viewer:'info',test:'info',general:'info'};
-  return '<span class="badge '+(map[cat]||'info')+'">'+esc(cat||'general')+'</span>';
-}
 function bindPromptHandlers(){
   $('prompt-save').addEventListener('click', async function(){
     const text = $('prompt-text').value.trim();
     if(!text){ flash('Введите текст промпта'); return; }
     const title = $('prompt-title').value.trim();
     const category = $('prompt-category').value;
-    await postJson('/api/prompts', { title: title, text: text, category: category });
-    $('prompt-text').value = ''; $('prompt-title').value = '';
+    const tags = $('prompt-tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const favorite = $('prompt-fav').checked;
+    const body = { title, text, category, tags, favorite };
+    if(state.editingPromptId) body.id = state.editingPromptId;
+    await postJson('/api/prompts', body);
+    $('prompt-text').value = ''; $('prompt-title').value = ''; $('prompt-tags').value = ''; $('prompt-fav').checked = false;
+    state.editingPromptId = null;
+    $('prompt-save').textContent = 'Сохранить в библиотеку';
     flash('Промпт сохранён');
     loadPromptTree();
   });
@@ -797,6 +857,17 @@ function bindPromptHandlers(){
     const text = $('prompt-text').value.trim();
     if(!text){ flash('Введите текст промпта'); return; }
     copyTask($('prompt-title').value.trim(), text, currentCommon());
+  });
+  $('prompt-use').addEventListener('click', async function(){
+    const text = $('prompt-text').value.trim();
+    if(!text){ flash('Введите текст промпта'); return; }
+    const title = $('prompt-title').value.trim();
+    await copyTask(title, text, currentCommon());
+    if(state.editingPromptId){
+      const r = await postJson('/api/prompts/use?id=' + encodeURIComponent(state.editingPromptId), {});
+      if(r && r.id) flash('Команда скопирована, использование записано в БД');
+      loadPromptTree();
+    }
   });
   $('common-save').addEventListener('click', async function(){
     const c = $('prompt-common').value;
@@ -810,44 +881,54 @@ async function loadCommon(){
 }
 async function loadPromptTree(){
   const data = await get('/api/prompts');
-  const top = data.top || [];
-  const drafts = data.prompts || [];
+  const prompts = data.prompts || [];
   const el = $('tree-prompt');
   if(!el) return;
+  const favs = prompts.filter(p=>p.favorite);
+  const itemHtml = (p) =>
+    '<div class="tree-item" data-id="'+p.id+'">'+
+      '<span class="icon">'+(p.favorite?'⭐':'📋')+'</span>'+
+      '<span class="name">'+esc(p.title||('#'+p.id))+'</span>'+
+      (p.tags && p.tags.length ? '<span class="tags">'+p.tags.map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</span>' : '')+
+      '<span class="count">'+(p.executions||0)+'</span>'+
+      '<button class="tree-fav" data-id="'+p.id+'" data-fav="'+(p.favorite?'1':'0')+'" title="'+(p.favorite?'Убрать из избранного':'В избранное')+'">'+(p.favorite?'⭐':'☆')+'</button>'+
+      '<button class="tree-del" data-id="'+p.id+'" title="Удалить промпт">✕</button></div>';
   let html = '';
-  html += '<div class="group-title" style="font-size:11px;color:var(--muted);text-transform:uppercase;padding:4px 8px">Топ-5</div>';
-  html += top.map((p,i) =>
-    '<div class="tree-item" data-kind="top" data-idx="'+i+'">'+
-      '<span class="icon">⭐</span><span class="name">'+esc(p.title)+'</span>'+
-      '<span class="count">'+catBadge(p.category)+'</span></div>'
-  ).join('');
-  if(drafts.length){
-    html += '<div class="group-title" style="font-size:11px;color:var(--muted);text-transform:uppercase;padding:4px 8px;margin-top:10px">Библиотека ('+drafts.length+')</div>';
-    html += drafts.map((p,i) =>
-      '<div class="tree-item" data-kind="draft" data-idx="'+i+'">'+
-        '<span class="icon">📋</span><span class="name">'+esc(p.title||('#'+p.id))+'</span>'+
-        '<span class="count">'+(p.executions||0)+'</span>'+
-        '<button class="tree-del" data-id="'+p.id+'" title="Удалить промпт">✕</button></div>'
-    ).join('');
-  }
+  html += '<div class="group-title" style="font-size:11px;color:var(--muted);text-transform:uppercase;padding:4px 8px">⭐ Избранное ('+favs.length+')</div>';
+  html += favs.length ? favs.map(itemHtml).join('') : '<div class="tree-empty">Нет избранных — жмите ☆ у промптов</div>';
+  html += '<div class="group-title" style="font-size:11px;color:var(--muted);text-transform:uppercase;padding:4px 8px;margin-top:10px">📋 Библиотека ('+prompts.length+')</div>';
+  html += prompts.map(itemHtml).join('');
   el.innerHTML = html;
   el.querySelectorAll('.tree-item').forEach(function(it){
     it.addEventListener('click', function(){
       el.querySelectorAll('.tree-item').forEach(x=>x.classList.remove('active'));
       it.classList.add('active');
-      const p = it.dataset.kind === 'top' ? top[+it.dataset.idx] : drafts[+it.dataset.idx];
+      const p = prompts.find(x=>String(x.id)===String(it.dataset.id));
       if(!p) return;
       $('prompt-title').value = p.title || '';
       $('prompt-text').value = p.text;
       $('prompt-category').value = p.category || 'general';
-      flash('Промпт загружен в форму');
+      $('prompt-tags').value = (p.tags||[]).join(', ');
+      $('prompt-fav').checked = !!p.favorite;
+      state.editingPromptId = p.id;
+      $('prompt-save').textContent = 'Обновить промпт (#'+p.id+')';
+      flash('Промпт загружен в форму (режим редактирования)');
       document.getElementById('content').scrollTop = 0;
+    });
+  });
+  el.querySelectorAll('.tree-fav').forEach(function(btn){
+    btn.addEventListener('click', async function(ev){
+      ev.stopPropagation();
+      const r = await postJson('/api/prompts/fav?id=' + encodeURIComponent(btn.dataset.id), {});
+      if(r && r.id){ flash(r.favorite ? 'Добавлено в избранное ⭐' : 'Убрано из избранного'); loadPromptTree(); }
+      else flash('Ошибка: промпт не найден');
     });
   });
   el.querySelectorAll('.tree-del').forEach(function(btn){
     btn.addEventListener('click', async function(ev){
       ev.stopPropagation();
-      if(!confirm('Удалить промпт «' + (btn.closest('.tree-item').querySelector('.name').textContent || '') + '»?')) return;
+      const name = (btn.closest('.tree-item').querySelector('.name')||{}).textContent || '';
+      if(!confirm('Удалить промпт «' + name + '»?')) return;
       const r = await delReq('/api/prompts?id=' + encodeURIComponent(btn.dataset.id));
       if(r.ok){ flash('Промпт удалён'); loadPromptTree(); }
       else flash(r.error || 'Ошибка удаления');
@@ -999,8 +1080,9 @@ const server = createServer((req, res) => {
       return item ? json(res, item) : json(res, { error: 'item not found' }, 404);
     }
     if (url.pathname === '/api/prompts' && req.method === 'GET') {
+      ensureSeeded();
       const common = readCommonPart() || DEFAULT_COMMON;
-      return json(res, { common, prompts: readPrompts(), top: TOP_PROMPTS });
+      return json(res, { common, prompts: readPrompts() });
     }
     if (url.pathname === '/api/prompts' && req.method === 'POST') {
       let body = '';
@@ -1009,7 +1091,8 @@ const server = createServer((req, res) => {
         try {
           const data = JSON.parse(body || '{}');
           if (typeof data.text !== 'string' || !data.text.trim()) return json(res, { error: 'text required' }, 400);
-          return json(res, savePrompt(data), 201);
+          const item = savePrompt(data);
+          return json(res, item, data.id ? 200 : 201);
         } catch (e) {
           return json(res, { error: String(e && e.message || e) }, 500);
         }
@@ -1019,6 +1102,10 @@ const server = createServer((req, res) => {
     if (url.pathname === '/api/prompts' && req.method === 'DELETE') {
       const ok = deletePrompt(url.searchParams.get('id'));
       return ok ? json(res, { ok: true }) : json(res, { error: 'not found' }, 404);
+    }
+    if (url.pathname === '/api/prompts/fav' && req.method === 'POST') {
+      const p = toggleFavorite(url.searchParams.get('id'));
+      return p ? json(res, p) : json(res, { error: 'not found' }, 404);
     }
     if (url.pathname === '/api/prompts/use' && req.method === 'POST') {
       const p = markPromptUsed(url.searchParams.get('id'));
