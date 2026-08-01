@@ -157,7 +157,7 @@ function html(res, content) {
   res.end(content);
 }
 
-const PAGE = `<!doctype html>
+const PAGE = String.raw`<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">

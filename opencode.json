@@ -141,6 +141,23 @@
       "type": "local",
       "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@liangshanli\\mcp-server-git\\start-server.js", "D:\\Плагины Ревит\\HeatEnergyCalculator"],
       "enabled": false
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@playwright\\mcp\\cli.js"],
+      "enabled": true,
+      "environment": {
+        "PLAYWRIGHT_BROWSERS_PATH": "C:\\Users\\Strakhov\\AppData\\Local\\ms-playwright"
+      }
+    },
+    "revit-mcp": {
+      "type": "local",
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@shuotao\\revit-mcp-server\\build\\index.js"],
+      "enabled": true,
+      "environment": {
+        "REVIT_MCP_PORT": "8964",
+        "MCP_PROFILE": "structural"
+      }
     }
   },
   "plugin": [

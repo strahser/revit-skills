@@ -1,6 +1,9 @@
 # Logs
 *.log
 
+# Playwright MCP artifacts
+.playwright-mcp/
+
 # opencode internal
 .opencode/config.json
 
