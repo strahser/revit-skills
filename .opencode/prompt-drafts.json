@@ -55,9 +55,9 @@
         "mcp",
         "setup"
       ],
-      "favorite": true,
+      "favorite": false,
       "created_at": "2026-08-01T20:41:46.325Z",
-      "updated_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:48:49.378Z",
       "status": "active",
       "executions": 0,
       "last_used": null
@@ -71,9 +71,9 @@
         "revit",
         "review"
       ],
-      "favorite": true,
+      "favorite": false,
       "created_at": "2026-08-01T20:41:46.326Z",
-      "updated_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:48:35.262Z",
       "status": "active",
       "executions": 0,
       "last_used": null
@@ -87,9 +87,9 @@
         "docs",
         "wiki"
       ],
-      "favorite": true,
+      "favorite": false,
       "created_at": "2026-08-01T20:41:46.326Z",
-      "updated_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:48:36.029Z",
       "status": "active",
       "executions": 0,
       "last_used": null
@@ -103,9 +103,9 @@
         "revit",
         "test"
       ],
-      "favorite": true,
+      "favorite": false,
       "created_at": "2026-08-01T20:41:46.326Z",
-      "updated_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:48:37.013Z",
       "status": "active",
       "executions": 0,
       "last_used": null
@@ -120,9 +120,9 @@
         "export",
         "threejs"
       ],
-      "favorite": true,
+      "favorite": false,
       "created_at": "2026-08-01T20:41:46.326Z",
-      "updated_at": "2026-08-01T20:41:46.326Z",
+      "updated_at": "2026-08-01T20:48:37.873Z",
       "status": "active",
       "executions": 0,
       "last_used": null
