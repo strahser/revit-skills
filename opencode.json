@@ -129,12 +129,12 @@
     },
     "pdf": {
       "type": "local",
-      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-pdf\\dist\\index.js"],
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-pdf\\dist\\index.js", "--stdio"],
       "enabled": true
     },
     "filesystem": {
       "type": "local",
-      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-filesystem\\dist\\index.js", "D:\\Плагины Ревит\\HeatEnergyCalculator"],
+      "command": ["node", "C:\\Users\\Strakhov\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-filesystem\\dist\\index.js", "C:\\Users\\Strakhov\\OneDrive\\Документы\\Default Project"],
       "enabled": true
     },
     "git": {

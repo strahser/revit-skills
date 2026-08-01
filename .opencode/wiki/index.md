@@ -11,6 +11,7 @@
 - [Clean Architecture V10](clean-architecture-v10.md) — HeatLossRevit2: Revit=presenter, Core=бизнес-логика, Base=DTO
 - [Dashboard и OpenContext](dashboard-opencontext.md) — локальный веб-дашборд и глобальная база знаний
 - [Agent Workflow](agent-workflow.md) — самоуправление: добавление скилов, обновление wiki, git push
+- [Orchestrator Guide](orchestrator-guide.md) — как пользоваться Revit Skills Orchestrator
 
 ## Быстрые ссылки
 

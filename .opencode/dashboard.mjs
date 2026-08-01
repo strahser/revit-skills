@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -9,6 +9,7 @@ const PORT = Number(process.env.DASHBOARD_PORT || 4317);
 
 const SKILLS_DIR = join(ROOT, '.opencode', 'skills');
 const WIKI_DIR = join(ROOT, '.opencode', 'wiki');
+const PROMPTS_PATH = join(ROOT, '.opencode', 'prompt-drafts.json');
 
 function db() {
   return new DatabaseSync(DB_PATH, { readOnly: true });
@@ -146,6 +147,93 @@ function readMissionFiles() {
   return out;
 }
 
+/* ---- DB tree & item API ---- */
+
+function dbTree() {
+  if (!existsSync(DB_PATH)) return { error: 'project.db not found' };
+  const d = db();
+  try {
+    const missions = d.prepare('SELECT * FROM missions ORDER BY rowid DESC').all();
+    const out = missions.map((m) => {
+      const children = [];
+      for (const r of d.prepare('SELECT id, title, status, assigned_role FROM tasks WHERE mission_id = ? ORDER BY rowid').all(m.id))
+        children.push({ type: 'task', id: r.id, title: r.title, status: r.status, role: r.assigned_role });
+      for (const r of d.prepare('SELECT id, severity, description, status FROM problems WHERE mission_id = ? ORDER BY rowid').all(m.id))
+        children.push({ type: 'problem', id: r.id, descr: r.description, severity: r.severity, status: r.status });
+      for (const r of d.prepare('SELECT id, title, kind FROM documents WHERE mission_id = ? ORDER BY rowid').all(m.id))
+        children.push({ type: 'document', id: r.id, title: r.title, kind: r.kind });
+      for (const r of d.prepare('SELECT id, reviewer, status, summary FROM review_rounds WHERE mission_id = ? ORDER BY rowid').all(m.id))
+        children.push({ type: 'review', id: r.id, reviewer: r.reviewer, status: r.status, summary: r.summary });
+      return {
+        type: 'mission',
+        id: m.id,
+        title: m.title,
+        status: m.status,
+        iteration: m.iteration,
+        created_at: m.created_at,
+        completed_at: m.completed_at,
+        children,
+      };
+    });
+    // orphan rows (no mission / deleted mission)
+    const orphan = [];
+    for (const r of d.prepare("SELECT id, title, status, assigned_role FROM tasks WHERE mission_id IS NULL OR mission_id NOT IN (SELECT id FROM missions) ORDER BY rowid").all())
+      orphan.push({ type: 'task', id: r.id, title: r.title, status: r.status, role: r.assigned_role });
+    for (const r of d.prepare("SELECT id, severity, description, status FROM problems WHERE mission_id IS NULL OR mission_id NOT IN (SELECT id FROM missions) ORDER BY rowid").all())
+      orphan.push({ type: 'problem', id: r.id, descr: r.description, severity: r.severity, status: r.status });
+    for (const r of d.prepare("SELECT id, title, kind FROM documents WHERE mission_id IS NULL OR mission_id NOT IN (SELECT id FROM missions) ORDER BY rowid").all())
+      orphan.push({ type: 'document', id: r.id, title: r.title, kind: r.kind });
+    for (const r of d.prepare("SELECT id, reviewer, status, summary FROM review_rounds WHERE mission_id IS NULL OR mission_id NOT IN (SELECT id FROM missions) ORDER BY rowid").all())
+      orphan.push({ type: 'review', id: r.id, reviewer: r.reviewer, status: r.status, summary: r.summary });
+    if (orphan.length)
+      out.push({ type: 'mission', id: null, title: '(без миссии)', status: '', iteration: 0, created_at: '', completed_at: '', children: orphan });
+    return out;
+  } finally {
+    d.close();
+  }
+}
+
+function dbItem(type, id) {
+  if (!existsSync(DB_PATH)) return null;
+  const d = db();
+  try {
+    switch (type) {
+      case 'mission': return d.prepare('SELECT * FROM missions WHERE id = ?').get(String(id)) || null;
+      case 'task': return d.prepare('SELECT * FROM tasks WHERE id = ?').get(String(id)) || null;
+      case 'problem':
+      case 'document':
+      case 'review': {
+        if (!/^\d+$/.test(String(id))) return null;
+        const table = type === 'review' ? 'review_rounds' : type + 's';
+        return d.prepare('SELECT * FROM "' + table + '" WHERE id = ?').get(Number(id)) || null;
+      }
+      default: return null;
+    }
+  } finally {
+    d.close();
+  }
+}
+
+/* ---- prompt drafts (separate JSON file, dashboard keeps project.db readOnly) ---- */
+
+function readPrompts() {
+  if (!existsSync(PROMPTS_PATH)) return [];
+  try {
+    const data = JSON.parse(readFileSync(PROMPTS_PATH, 'utf8'));
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePrompt(text) {
+  const drafts = readPrompts();
+  const item = { id: Date.now(), text: String(text || ''), created_at: new Date().toISOString() };
+  drafts.push(item);
+  writeFileSync(PROMPTS_PATH, JSON.stringify(drafts, null, 2) + '\n', 'utf8');
+  return item;
+}
+
 function json(res, data, code = 200) {
   const body = JSON.stringify(data, null, 2);
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -211,6 +299,11 @@ summary { cursor:pointer; font-weight:600; }
 a { color:var(--accent); text-decoration:none; }
 a:hover { text-decoration:underline; }
 .empty { color:var(--muted); padding:20px; text-align:center; }
+.btn { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:7px 14px; cursor:pointer; font-size:13px; }
+.btn:hover { border-color:var(--accent); }
+.btn.primary { background:var(--accent); color:#0b0f17; border-color:var(--accent); font-weight:600; }
+.flash { position:fixed; bottom:20px; right:20px; background:var(--panel2); border:1px solid var(--accent); color:var(--text); padding:10px 16px; border-radius:8px; opacity:0; transform:translateY(8px); transition:.2s; pointer-events:none; z-index:99; max-width:60%; }
+.flash.show { opacity:1; transform:none; }
 .json-key { color:var(--accent); } .json-str { color:var(--green); } .json-num { color:var(--yellow); }
 /* markdown rendering */
 .md { font-size:14px; line-height:1.65; }
@@ -240,6 +333,7 @@ a:hover { text-decoration:underline; }
   <button data-tab="wiki">Wiki</button>
   <button data-tab="db">База данных</button>
   <button data-tab="mission">Миссия</button>
+  <button data-tab="prompt">Промпт</button>
 </nav>
 <div class="layout">
   <aside class="sidebar" id="sidebar">
@@ -250,6 +344,10 @@ a:hover { text-decoration:underline; }
     <div class="group" id="group-wiki">
       <div class="group-title">Wiki</div>
       <div id="tree-wiki"></div>
+    </div>
+    <div class="group" id="group-db" style="display:none">
+      <div class="group-title">База данных</div>
+      <div id="tree-db"></div>
     </div>
   </aside>
   <main class="content" id="content">
@@ -348,11 +446,12 @@ function renderMarkdown(src){
 /* ---- api ---- */
 async function get(path){ const r = await fetch(path); return r.json(); }
 
-function sidebarVisibleFor(tab){ return tab === 'skills' || tab === 'wiki'; }
+function sidebarVisibleFor(tab){ return tab === 'skills' || tab === 'wiki' || tab === 'db'; }
 function setSidebarVisible(show){ $('sidebar').style.display = show ? '' : 'none'; }
 function setTreeGroup(tab){
   $('group-skills').style.display = (tab === 'skills') ? '' : 'none';
   $('group-wiki').style.display  = (tab === 'wiki')  ? '' : 'none';
+  $('group-db').style.display    = (tab === 'db')    ? '' : 'none';
 }
 
 async function buildTrees(){
@@ -398,6 +497,215 @@ function badge(status){
   const map={done:'ok',completed:'ok',passed:'ok',resolved:'ok',active:'warn',todo:'info',in_progress:'warn',open:'warn',pending:'info',failed:'err',blocked:'err',cancelled:'err',warning:'warn',blocker:'err',info:'info'};
   return '<span class="badge '+(map[status]||'info')+'">'+esc(status)+'</span>';
 }
+
+/* ---- db tree tab ---- */
+const DB_ICON = { task:'✅', problem:'⚠️', document:'📄', review:'🔍' };
+function dbLabel(c){
+  return c.title || c.descr || (c.reviewer ? 'review #'+c.id : c.type+' #'+c.id) || c.type;
+}
+function dbBadge(c){
+  const s = c.status || c.severity || '';
+  return s ? badge(s) : '';
+}
+function dbTreeHtml(tree){
+  return tree.map((m) => {
+    const kids = (m.children || []).map((c) =>
+      '<div class="tree-item" data-db-type="'+c.type+'" data-db-id="'+esc(String(c.id))+'">'+
+        '<span class="caret" style="visibility:hidden">▸</span>'+
+        '<span class="icon">'+(DB_ICON[c.type]||'•')+'</span>'+
+        '<span class="name">'+esc(dbLabel(c))+'</span>'+
+        '<span class="count">'+dbBadge(c)+'</span>'+
+      '</div>').join('');
+    return '<div class="tree-group">'+
+      '<div class="tree-item group-head" data-db-type="mission" data-db-id="'+esc(m.id==null?'':String(m.id))+'">'+
+        '<span class="caret open">▸</span>'+
+        '<span class="icon">🚀</span>'+
+        '<span class="name">'+esc(m.title || m.id || '(без миссии)')+'</span>'+
+        '<span class="count">'+(m.children ? m.children.length : 0)+'</span>'+
+      '</div>'+
+      '<div class="tree-children">'+kids+'</div>'+
+    '</div>';
+  }).join('');
+}
+function bindDbTreeClick(){
+  const el = $('tree-db');
+  if(!el || el.dataset.bound) return;
+  el.dataset.bound = '1';
+  el.addEventListener('click', (e) => {
+    const item = e.target.closest('.tree-item');
+    if(!item) return;
+    el.querySelectorAll('.tree-item').forEach(x => x.classList.remove('active'));
+    item.classList.add('active');
+    if(item.classList.contains('group-head')){
+      const ch = item.parentElement.querySelector('.tree-children');
+      const caret = item.querySelector('.caret');
+      if(ch){ ch.classList.toggle('hidden'); caret.classList.toggle('open', !ch.classList.contains('hidden')); }
+    }
+    const type = item.dataset.dbType;
+    const id = item.dataset.dbId;
+    if(type && id !== '') openDbItem(type, id);
+  });
+}
+function renderDbItem(type, data){
+  const metaRows = [];
+  const h = '<h1 style="margin:0 0 4px">';
+  if(type === 'mission'){
+    metaRows.push(badge(data.status), '<span>iteration: '+esc(String(data.iteration))+'</span>', '<span>'+esc(data.created_at||'')+'</span>');
+    if(data.completed_at) metaRows.push('<span>✓ '+esc(data.completed_at)+'</span>');
+    let out = h+esc(data.id)+' — '+esc(data.title)+'</h1><div class="doc-meta">'+metaRows.map(x=>'<span>'+x+'</span>').join('')+'</div>';
+    if(data.description) out += '<div class="card"><h3>Описание</h3><div class="md">'+renderMarkdown(data.description)+'</div></div>';
+    if(data.objective) out += '<div class="card"><h3>Цель</h3><div class="md">'+renderMarkdown(data.objective)+'</div></div>';
+    if(data.session_hint) out += '<div class="card"><h3>Session hint</h3><div class="md">'+renderMarkdown(data.session_hint)+'</div></div>';
+    const kids = (data._children || []).map((c) =>
+      '<div class="tree-item" data-jump-type="'+c.type+'" data-jump-id="'+esc(String(c.id))+'">'+
+        '<span class="icon">'+(DB_ICON[c.type]||'•')+'</span>'+
+        '<span class="name">'+esc(dbLabel(c))+'</span>'+
+        '<span class="count">'+dbBadge(c)+'</span>'+
+      '</div>').join('');
+    if(kids) out += '<div class="card"><h3>Содержимое миссии</h3>'+kids+'</div>';
+    return out;
+  }
+  if(type === 'task'){
+    metaRows.push(badge(data.status), '<span>role: '+esc(data.assigned_role||'')+'</span>', '<span>'+esc(data.created_at||'')+'</span>');
+    let out = h+esc(data.id)+' — '+esc(data.title)+'</h1><div class="doc-meta">'+metaRows.map(x=>'<span>'+x+'</span>').join('')+'</div>';
+    if(data.description) out += '<div class="card"><h3>Описание</h3><div class="md">'+renderMarkdown(data.description)+'</div></div>';
+    if(data.evidence) out += '<div class="card"><h3>Доказательства</h3><div class="md">'+renderMarkdown(data.evidence)+'</div></div>';
+    if(data.completed_at) out += '<div class="card muted">Завершено: '+esc(data.completed_at)+'</div>';
+    return out;
+  }
+  if(type === 'problem'){
+    metaRows.push(badge(data.severity), badge(data.status), '<span>'+esc(data.created_at||'')+'</span>');
+    let out = h+'Проблема #'+data.id+'</h1><div class="doc-meta">'+metaRows.map(x=>'<span>'+x+'</span>').join('')+'</div>';
+    out += '<div class="card"><h3>Описание</h3><div class="md">'+renderMarkdown(data.description)+'</div></div>';
+    if(data.resolution) out += '<div class="card"><h3>Решение</h3><div class="md">'+renderMarkdown(data.resolution)+'</div></div>';
+    if(data.resolved_at) out += '<div class="card muted">Решено: '+esc(data.resolved_at)+'</div>';
+    return out;
+  }
+  if(type === 'document'){
+    metaRows.push(badge(data.kind), '<span>'+esc(data.created_at||'')+'</span>');
+    if(data.url) metaRows.push('<span><a href="'+esc(data.url)+'" target="_blank" rel="noopener">'+esc(data.url)+'</a></span>');
+    if(data.path) metaRows.push('<span><code>'+esc(data.path)+'</code></span>');
+    let out = h+esc(data.title)+'</h1><div class="doc-meta">'+metaRows.map(x=>'<span>'+x+'</span>').join('')+'</div>';
+    if(data.description) out += '<div class="card"><h3>Описание</h3><div class="md">'+renderMarkdown(data.description)+'</div></div>';
+    if(data.content) out += '<div class="card"><h3>Содержимое</h3><div class="md">'+renderMarkdown(data.content)+'</div></div>';
+    return out;
+  }
+  if(type === 'review'){
+    metaRows.push(badge(data.status), '<span>reviewer: '+esc(data.reviewer||'')+'</span>');
+    if(data.model) metaRows.push('<span>model: '+esc(data.model)+'</span>');
+    metaRows.push('<span>'+esc(data.created_at||'')+'</span>');
+    let out = h+'Ревью #'+data.id+'</h1><div class="doc-meta">'+metaRows.map(x=>'<span>'+x+'</span>').join('')+'</div>';
+    if(data.summary) out += '<div class="card"><h3>Summary</h3><div class="md">'+renderMarkdown(data.summary)+'</div></div>';
+    if(data.next_steps) out += '<div class="card"><h3>Дальнейшие шаги</h3><div class="md">'+renderMarkdown(data.next_steps)+'</div></div>';
+    return out;
+  }
+  return '<div class="card"><pre>'+jsonHtml(data)+'</pre></div>';
+}
+async function openDbItem(type, id){
+  state.selection = { kind:'db', type, id };
+  const p = [get('/api/db/item?type='+encodeURIComponent(type)+'&id='+encodeURIComponent(id))];
+  if(type === 'mission') p.push(get('/api/db/tree'));
+  const results = await Promise.all(p);
+  const data = results[0];
+  if(data.error){ $('content').innerHTML = '<div class="empty">'+esc(data.error)+'</div>'; return; }
+  if(type === 'mission' && results[1]){
+    const node = results[1].find(m => String(m.id) === String(id));
+    data._children = node ? node.children : [];
+  }
+  $('content').innerHTML = renderDbItem(type, data);
+  const jumps = $('content').querySelectorAll('[data-jump-type]');
+  for(const j of jumps){
+    j.addEventListener('click', () => openDbItem(j.dataset.jumpType, j.dataset.jumpId));
+  }
+}
+
+/* ---- prompt tab ---- */
+function promptHtml(){
+  return '<h1 style="margin:0 0 4px">Композитор промпта</h1>'+
+    '<p class="muted" style="margin:0 0 16px">Опишите миссию — сохраните черновик или скопируйте команду /task для оркестратора (opencode-orchestrator).</p>'+
+    '<textarea id="prompt-text" rows="10" placeholder="Введите описание миссии..." style="width:100%;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font:13px/1.5 Consolas,monospace;resize:vertical"></textarea>'+
+    '<div style="display:flex;gap:8px;margin:12px 0 24px">'+
+      '<button id="prompt-save" class="btn primary">Сохранить черновик</button>'+
+      '<button id="prompt-copy" class="btn">Копировать /task</button>'+
+    '</div>'+
+    '<h3 style="margin:0 0 8px">Черновики</h3>'+
+    '<div id="prompt-drafts"><div class="muted">Загрузка...</div></div>';
+}
+function flash(msg){
+  let el = $('flash');
+  if(!el){ el = document.createElement('div'); el.id = 'flash'; el.className = 'flash'; document.body.appendChild(el); }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.classList.remove('show'); }, 2600);
+}
+async function postJson(path, body){
+  const r = await fetch(path, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+  return r.json();
+}
+function copyTaskCmd(text){
+  return '/task "' + text.replace(/"/g, '\\"') + '"';
+}
+async function copyTask(text){
+  const cmd = copyTaskCmd(text);
+  try {
+    await navigator.clipboard.writeText(cmd);
+    flash('Команда /task скопирована');
+  } catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = cmd;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); flash('Команда /task скопирована'); }
+    catch(e2) { flash('Не удалось скопировать: '+e2.message); }
+    document.body.removeChild(ta);
+  }
+}
+function bindPromptHandlers(){
+  $('prompt-save').addEventListener('click', async function(){
+    const text = $('prompt-text').value.trim();
+    if(!text){ flash('Введите текст промпта'); return; }
+    await postJson('/api/prompts', { text: text });
+    $('prompt-text').value = '';
+    flash('Черновик сохранён');
+    loadDrafts();
+  });
+  $('prompt-copy').addEventListener('click', function(){
+    const text = $('prompt-text').value.trim();
+    if(!text){ flash('Введите текст промпта'); return; }
+    copyTask(text);
+  });
+}
+async function loadDrafts(){
+  const drafts = await get('/api/prompts');
+  const el = $('prompt-drafts');
+  if(!el) return;
+  if(!drafts.length){ el.innerHTML = '<div class="muted">Пока нет черновиков</div>'; return; }
+  el.innerHTML = drafts.map(function(dr, i){
+    return '<div class="card" style="margin-bottom:10px;padding:12px">'+
+      '<div style="display:flex;gap:12px;align-items:flex-start">'+
+        '<div style="flex:1;white-space:pre-wrap;word-break:break-word">'+esc(dr.text)+'</div>'+
+        '<div style="display:flex;flex-direction:column;gap:6px;min-width:130px">'+
+          '<button class="btn" data-act="load" data-idx="'+i+'">Загрузить</button>'+
+          '<button class="btn" data-act="copy" data-idx="'+i+'">Копировать /task</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="muted" style="font-size:11px;margin-top:6px">'+esc(dr.created_at||'')+'</div>'+
+    '</div>';
+  }).join('');
+  const btns = el.querySelectorAll('button[data-act]');
+  for(const b of btns){
+    b.addEventListener('click', function(){
+      const dr = drafts[+b.dataset.idx];
+      if(!dr) return;
+      if(b.dataset.act === 'load'){ $('prompt-text').value = dr.text; flash('Черновик загружен'); }
+      else copyTask(dr.text);
+    });
+  }
+}
+
 async function loadTab(tab){
   if(tab==='skills' || tab==='wiki'){
     setSidebarVisible(true);
@@ -406,14 +714,31 @@ async function loadTab(tab){
     else $('content').innerHTML = '<div class="placeholder">Выберите элемент слева.</div>';
     return;
   }
-  setSidebarVisible(false);
   if(tab==='db'){
-    const d = await get('/api/db');
-    $('content').innerHTML = d.exists
-      ? '<div class="grid">'+d.tables.map(t=>'<div class="card"><h3>'+esc(t.name)+' <span class="muted">('+t.count+')</span></h3>'+
-          (t.rows.length ? '<details open><summary>последние записи</summary><div class="collapse"><pre>'+jsonHtml(t.rows)+'</pre></div></details>' : '<div class="muted">пусто</div>')+'</div>').join('')+'</div>'
-      : '<div class="card empty">База данных не найдена: project.db</div>';
-  } else if(tab==='mission'){
+    setSidebarVisible(true);
+    setTreeGroup('db');
+    const tree = await get('/api/db/tree');
+    if(tree.error){ $('content').innerHTML = '<div class="empty">'+esc(tree.error)+'</div>'; return; }
+    $('tree-db').innerHTML = dbTreeHtml(tree);
+    bindDbTreeClick();
+    if(state.selection && state.selection.kind === 'db' && state.selection.type && state.selection.id){
+      openDbItem(state.selection.type, state.selection.id);
+    } else if(tree.length){
+      $('content').innerHTML = '<div class="placeholder">Выберите миссию или элемент дерева слева.</div>';
+    } else {
+      $('content').innerHTML = '<div class="card empty">База данных пуста</div>';
+    }
+    return;
+  }
+  if(tab==='prompt'){
+    setSidebarVisible(false);
+    $('content').innerHTML = promptHtml();
+    bindPromptHandlers();
+    loadDrafts();
+    return;
+  }
+  setSidebarVisible(false);
+  if(tab==='mission'){
     const m = await get('/api/mission');
     const entries = Object.entries(m);
     $('content').innerHTML = entries.length
@@ -437,7 +762,8 @@ document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()
 async function boot(){
   try {
     const s = await get('/api/state');
-    $('status').textContent = 'БД: '+s.dbExists+', скилы: '+s.skills+', wiki: '+s.wiki;
+    const dbTxt = s.db ? ('миссии: '+s.db.missions+', задачи: '+s.db.tasks+', ревью: '+s.db.reviews) : (s.dbExists ? 'есть' : 'нет');
+    $('status').textContent = 'БД ('+dbTxt+'), скилы: '+s.skills+', wiki: '+s.wiki;
   } catch(e){ $('status').textContent = 'ошибка подключения'; }
   await buildTrees();
   loadTab('skills');
@@ -452,10 +778,20 @@ const server = createServer((req, res) => {
   try {
     if (url.pathname === '/') return html(res, PAGE);
     if (url.pathname === '/api/state') {
+      const dbCounts = { missions: 0, tasks: 0, reviews: 0 };
+      if (existsSync(DB_PATH)) {
+        const d = db();
+        try {
+          dbCounts.missions = d.prepare('SELECT COUNT(*) AS c FROM missions').get().c;
+          dbCounts.tasks = d.prepare('SELECT COUNT(*) AS c FROM tasks').get().c;
+          dbCounts.reviews = d.prepare('SELECT COUNT(*) AS c FROM review_rounds').get().c;
+        } catch (e) { /* ignore */ } finally { d.close(); }
+      }
       return json(res, {
         dbExists: existsSync(DB_PATH),
         skills: readSkills().length,
         wiki: readWiki().length,
+        db: dbCounts,
       });
     }
     if (url.pathname === '/api/skills') return json(res, readSkills());
@@ -474,6 +810,26 @@ const server = createServer((req, res) => {
       return json(res, { error: 'bad kind' }, 400);
     }
     if (url.pathname === '/api/db') return json(res, dbState());
+    if (url.pathname === '/api/db/tree') return json(res, dbTree());
+    if (url.pathname === '/api/db/item') {
+      const item = dbItem(url.searchParams.get('type'), url.searchParams.get('id'));
+      return item ? json(res, item) : json(res, { error: 'item not found' }, 404);
+    }
+    if (url.pathname === '/api/prompts' && req.method === 'GET') return json(res, readPrompts());
+    if (url.pathname === '/api/prompts' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body || '{}');
+          if (typeof data.text !== 'string' || !data.text.trim()) return json(res, { error: 'text required' }, 400);
+          return json(res, savePrompt(data.text), 201);
+        } catch (e) {
+          return json(res, { error: String(e && e.message || e) }, 500);
+        }
+      });
+      return;
+    }
     if (url.pathname === '/api/mission') return json(res, readMissionFiles());
     json(res, { error: 'not found' }, 404);
   } catch (e) {
