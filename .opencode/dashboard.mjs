@@ -214,25 +214,96 @@ function dbItem(type, id) {
   }
 }
 
-/* ---- prompt drafts (separate JSON file, dashboard keeps project.db readOnly) ---- */
+/* ---- prompt drafts v2 (structured JSON + Common part + DB progress log) ---- */
 
 function readPrompts() {
   if (!existsSync(PROMPTS_PATH)) return [];
   try {
     const data = JSON.parse(readFileSync(PROMPTS_PATH, 'utf8'));
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+    if (Array.isArray(data)) return data; // legacy v1
+    return Array.isArray(data.prompts) ? data.prompts : [];
+  } catch { return []; }
 }
 
-function savePrompt(text) {
-  const drafts = readPrompts();
-  const item = { id: Date.now(), text: String(text || ''), created_at: new Date().toISOString() };
-  drafts.push(item);
-  writeFileSync(PROMPTS_PATH, JSON.stringify(drafts, null, 2) + '\n', 'utf8');
+function readCommonPart() {
+  if (!existsSync(PROMPTS_PATH)) return '';
+  try {
+    const data = JSON.parse(readFileSync(PROMPTS_PATH, 'utf8'));
+    if (!data || Array.isArray(data)) return '';
+    return data.common || '';
+  } catch { return ''; }
+}
+
+function writePrompts(prompts, common) {
+  const data = { version: 2, common: common || '', prompts: prompts || [] };
+  writeFileSync(PROMPTS_PATH, JSON.stringify(data, null, 2) + '\n', 'utf8');
+}
+
+function savePrompt({ title, text, category }) {
+  const prompts = readPrompts();
+  const common = readCommonPart();
+  const item = {
+    id: Date.now(),
+    title: String(title || '').trim() || ('Промпт ' + (prompts.length + 1)),
+    text: String(text || ''),
+    category: String(category || 'general').trim() || 'general',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    status: 'active',
+    executions: 0,
+    last_used: null,
+  };
+  prompts.push(item);
+  writePrompts(prompts, common);
   return item;
 }
+
+function deletePrompt(id) {
+  const prompts = readPrompts();
+  const common = readCommonPart();
+  const idx = prompts.findIndex(p => String(p.id) === String(id));
+  if (idx === -1) return false;
+  prompts.splice(idx, 1);
+  writePrompts(prompts, common);
+  return true;
+}
+
+function saveCommonPart(text) {
+  writePrompts(readPrompts(), String(text || ''));
+  return String(text || '');
+}
+
+function markPromptUsed(id) {
+  const prompts = readPrompts();
+  const common = readCommonPart();
+  const p = prompts.find(x => String(x.id) === String(id));
+  if (!p) return null;
+  p.executions = (p.executions || 0) + 1;
+  p.last_used = new Date().toISOString();
+  p.updated_at = p.last_used;
+  writePrompts(prompts, common);
+  logPromptProgress('Prompt used: ' + (p.title || p.text.slice(0, 60)));
+  return p;
+}
+
+function logPromptProgress(detail) {
+  // Dashboard writes to project.db on purpose for prompt progress tracking
+  try {
+    const d = new DatabaseSync(DB_PATH); // read-write
+    d.prepare("INSERT OR IGNORE INTO missions (id, title, status, created_at, updated_at) VALUES ('M-PROMPTS', 'Prompt work log', 'active', datetime('now'), datetime('now'))").run();
+    d.prepare("INSERT INTO progress_log (mission_id, action, detail, file_refs, created_at) VALUES ('M-PROMPTS', 'note', ?, 'prompt-drafts.json', datetime('now'))").run(detail);
+    d.close();
+    return true;
+  } catch (e) { return false; }
+}
+
+const TOP_PROMPTS = [
+  { title: 'Развернуть/починить MCP-серверы', text: 'Проверь все MCP-серверы в opencode.json (handshake через stdio JSON-RPC), исправь конфигурацию, обнови .opencode/wiki/mcp-servers.md и запиши результат в project.db.', category: 'mcp' },
+  { title: 'Ревью кода Revit-плагина', text: 'Проведи независимое ревью кода Revit-плагина по .opencode/skills/revit-api: транзакции, исключения BooleanOperationsUtils, производительность, best practices. Запиши review_rounds в project.db.', category: 'revit' },
+  { title: 'Обновить wiki/документацию', text: 'Обнови базу знаний .opencode/wiki/ по актуальному состоянию проекта, добавь ссылку в index.md, закоммить и запушь в GitHub (skills master).', category: 'docs' },
+  { title: 'Написать тесты для Revit API', text: 'Напиши RevitApiTest-тесты по .opencode/skills/revit-testing и revit-test-fixtures, выполни их через revit-test-runner и зафиксируй результаты в project.db.', category: 'revit' },
+  { title: 'Экспорт геометрии для 3D-вьювера', text: 'Экспортируй геометрию Revit по .opencode/skills/revit-3d-export (BoundingBox/LocationCurve/LocationPoint fallback, Z-up feet → Y-up mm) и проверь в demo3D/Index.html.', category: 'viewer' },
+];
 
 function json(res, data, code = 200) {
   const body = JSON.stringify(data, null, 2);
@@ -625,16 +696,31 @@ async function openDbItem(type, id){
   }
 }
 
-/* ---- prompt tab ---- */
+/* ---- prompt tab (v2: structured, common part, top5, delete, use, DB progress) ---- */
 function promptHtml(){
   return '<h1 style="margin:0 0 4px">Композитор промпта</h1>'+
-    '<p class="muted" style="margin:0 0 16px">Опишите миссию — сохраните черновик или скопируйте команду /task для оркестратора (opencode-orchestrator).</p>'+
-    '<textarea id="prompt-text" rows="10" placeholder="Введите описание миссии..." style="width:100%;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font:13px/1.5 Consolas,monospace;resize:vertical"></textarea>'+
-    '<div style="display:flex;gap:8px;margin:12px 0 24px">'+
-      '<button id="prompt-save" class="btn primary">Сохранить черновик</button>'+
-      '<button id="prompt-copy" class="btn">Копировать /task</button>'+
+    '<p class="muted" style="margin:0 0 16px">Создавайте промпты, сохраняйте в библиотеку и запускайте через /task. Ход работы пишется в project.db.</p>'+
+    '<div class="card"><h3>Общая часть команды (инструкции агентам)</h3>'+
+      '<p class="muted" style="margin:0 0 8px">Добавляется к каждому /task — кратко объясняет агентам, как мы обрабатываем данные.</p>'+
+      '<textarea id="prompt-common" rows="3" placeholder="Например: Работай по AGENTS.md и wiki/index.md. Результаты фиксируй в .opencode/project.db через storage MCP. Готовое коммить и пушить: git push skills master." style="width:100%;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font:13px/1.5 Consolas,monospace;resize:vertical"></textarea>'+
+      '<div style="margin-top:8px"><button id="common-save" class="btn">Сохранить общую часть</button></div>'+
     '</div>'+
-    '<h3 style="margin:0 0 8px">Черновики</h3>'+
+    '<div class="card"><h3>Новый промпт</h3>'+
+      '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+        '<input id="prompt-title" placeholder="Название (кратко)" style="flex:1;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font:13px Consolas,monospace">'+
+        '<select id="prompt-category" style="background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font:13px">'+
+          '<option value="general">general</option><option value="revit">revit</option><option value="mcp">mcp</option><option value="docs">docs</option><option value="viewer">viewer</option><option value="test">test</option>'+
+        '</select>'+
+      '</div>'+
+      '<textarea id="prompt-text" rows="6" placeholder="Описание миссии..." style="width:100%;background:var(--code);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font:13px/1.5 Consolas,monospace;resize:vertical"></textarea>'+
+      '<div style="display:flex;gap:8px;margin-top:8px">'+
+        '<button id="prompt-save" class="btn primary">Сохранить в библиотеку</button>'+
+        '<button id="prompt-copy" class="btn">Копировать /task</button>'+
+      '</div>'+
+    '</div>'+
+    '<h3 style="margin:12px 0 8px">Топ-5 основных промптов</h3>'+
+    '<div id="prompt-top"><div class="muted">Загрузка...</div></div>'+
+    '<h3 style="margin:16px 0 8px">Библиотека промптов</h3>'+
     '<div id="prompt-drafts"><div class="muted">Загрузка...</div></div>';
 }
 function flash(msg){
@@ -649,11 +735,17 @@ async function postJson(path, body){
   const r = await fetch(path, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
   return r.json();
 }
-function copyTaskCmd(text){
-  return '/task "' + text.replace(/"/g, '\\"') + '"';
+async function delReq(path){
+  const r = await fetch(path, { method:'DELETE' });
+  return r.json();
 }
-async function copyTask(text){
-  const cmd = copyTaskCmd(text);
+function copyTaskCmd(title, text, common){
+  const t = (title ? title + '\n\n' : '') + String(text || '');
+  const full = (common && common.trim()) ? t + '\n\n' + common : t;
+  return '/task "' + full.replace(/"/g, '\\"') + '"';
+}
+async function copyTask(title, text, common){
+  const cmd = copyTaskCmd(title, text, common);
   try {
     await navigator.clipboard.writeText(cmd);
     flash('Команда /task скопирована');
@@ -669,45 +761,106 @@ async function copyTask(text){
     document.body.removeChild(ta);
   }
 }
+function currentCommon(){ return ($('prompt-common') ? $('prompt-common').value : '') || ''; }
+function catBadge(cat){
+  const map={revit:'info',mcp:'info',docs:'info',viewer:'info',test:'info',general:'info'};
+  return '<span class="badge '+(map[cat]||'info')+'">'+esc(cat||'general')+'</span>';
+}
 function bindPromptHandlers(){
   $('prompt-save').addEventListener('click', async function(){
     const text = $('prompt-text').value.trim();
     if(!text){ flash('Введите текст промпта'); return; }
-    await postJson('/api/prompts', { text: text });
-    $('prompt-text').value = '';
-    flash('Черновик сохранён');
+    const title = $('prompt-title').value.trim();
+    const category = $('prompt-category').value;
+    await postJson('/api/prompts', { title: title, text: text, category: category });
+    $('prompt-text').value = ''; $('prompt-title').value = '';
+    flash('Промпт сохранён');
     loadDrafts();
   });
   $('prompt-copy').addEventListener('click', function(){
     const text = $('prompt-text').value.trim();
     if(!text){ flash('Введите текст промпта'); return; }
-    copyTask(text);
+    copyTask($('prompt-title').value.trim(), text, currentCommon());
+  });
+  $('common-save').addEventListener('click', async function(){
+    const c = $('prompt-common').value;
+    await postJson('/api/prompts/common', { text: c });
+    flash('Общая часть сохранена');
   });
 }
+async function loadTop(){
+  const data = await get('/api/prompts');
+  const top = data.top || [];
+  const el = $('prompt-top');
+  if(!el) return;
+  if(!top.length){ el.innerHTML = '<div class="muted">Нет</div>'; return; }
+  el.innerHTML = top.map(function(p, i){
+    return '<div class="tree-item" data-top="'+i+'">'+
+      '<span class="icon">⭐</span><span class="name">'+esc(p.title)+'</span>'+
+      '<span class="count">'+catBadge(p.category)+'</span></div>';
+  }).join('');
+  el.querySelectorAll('[data-top]').forEach(function(it){
+    it.addEventListener('click', function(){
+      const p = top[+it.dataset.top];
+      if(!p) return;
+      $('prompt-title').value = p.title;
+      $('prompt-text').value = p.text;
+      $('prompt-category').value = p.category || 'general';
+      flash('Топ-промпт загружен');
+    });
+  });
+}
+async function loadCommon(){
+  const data = await get('/api/prompts');
+  if($('prompt-common')) $('prompt-common').value = data.common || '';
+}
 async function loadDrafts(){
-  const drafts = await get('/api/prompts');
+  const data = await get('/api/prompts');
+  const drafts = data.prompts || [];
   const el = $('prompt-drafts');
   if(!el) return;
-  if(!drafts.length){ el.innerHTML = '<div class="muted">Пока нет черновиков</div>'; return; }
+  if(!drafts.length){ el.innerHTML = '<div class="muted">Библиотека пуста — создайте первый промпт выше.</div>'; return; }
   el.innerHTML = drafts.map(function(dr, i){
     return '<div class="card" style="margin-bottom:10px;padding:12px">'+
       '<div style="display:flex;gap:12px;align-items:flex-start">'+
-        '<div style="flex:1;white-space:pre-wrap;word-break:break-word">'+esc(dr.text)+'</div>'+
-        '<div style="display:flex;flex-direction:column;gap:6px;min-width:130px">'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-weight:600;margin-bottom:2px">'+esc(dr.title||('#'+dr.id))+' '+catBadge(dr.category)+'</div>'+
+          '<div style="white-space:pre-wrap;word-break:break-word">'+esc(dr.text)+'</div>'+
+          '<div class="muted" style="font-size:11px;margin-top:6px">'+esc((dr.created_at||'').slice(0,16))+
+            (dr.executions ? ' · использован '+dr.executions+' раз' : '')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;gap:6px;min-width:140px">'+
           '<button class="btn" data-act="load" data-idx="'+i+'">Загрузить</button>'+
           '<button class="btn" data-act="copy" data-idx="'+i+'">Копировать /task</button>'+
+          '<button class="btn" data-act="use" data-idx="'+i+'">Использовать</button>'+
+          '<button class="btn" data-act="del" data-idx="'+i+'" style="border-color:#3b1212;color:var(--red)">Удалить</button>'+
         '</div>'+
       '</div>'+
-      '<div class="muted" style="font-size:11px;margin-top:6px">'+esc(dr.created_at||'')+'</div>'+
     '</div>';
   }).join('');
   const btns = el.querySelectorAll('button[data-act]');
   for(const b of btns){
-    b.addEventListener('click', function(){
+    b.addEventListener('click', async function(){
       const dr = drafts[+b.dataset.idx];
       if(!dr) return;
-      if(b.dataset.act === 'load'){ $('prompt-text').value = dr.text; flash('Черновик загружен'); }
-      else copyTask(dr.text);
+      if(b.dataset.act === 'load'){
+        $('prompt-title').value = dr.title || '';
+        $('prompt-text').value = dr.text;
+        $('prompt-category').value = dr.category || 'general';
+        flash('Промпт загружен');
+      } else if(b.dataset.act === 'copy'){
+        copyTask(dr.title, dr.text, currentCommon());
+      } else if(b.dataset.act === 'use'){
+        await postJson('/api/prompts/use?id='+encodeURIComponent(dr.id), {});
+        copyTask(dr.title, dr.text, currentCommon());
+        flash('Использовано, ход работы записан в БД');
+        loadDrafts();
+      } else if(b.dataset.act === 'del'){
+        if(!confirm('Удалить промпт «'+(dr.title||dr.id)+'»?')) return;
+        await delReq('/api/prompts?id='+encodeURIComponent(dr.id));
+        flash('Промпт удалён');
+        loadDrafts();
+      }
     });
   }
 }
@@ -740,6 +893,8 @@ async function loadTab(tab){
     setSidebarVisible(false);
     $('content').innerHTML = promptHtml();
     bindPromptHandlers();
+    loadCommon();
+    loadTop();
     loadDrafts();
     return;
   }
@@ -853,7 +1008,9 @@ const server = createServer((req, res) => {
       const item = dbItem(url.searchParams.get('type'), url.searchParams.get('id'));
       return item ? json(res, item) : json(res, { error: 'item not found' }, 404);
     }
-    if (url.pathname === '/api/prompts' && req.method === 'GET') return json(res, readPrompts());
+    if (url.pathname === '/api/prompts' && req.method === 'GET') {
+      return json(res, { common: readCommonPart(), prompts: readPrompts(), top: TOP_PROMPTS });
+    }
     if (url.pathname === '/api/prompts' && req.method === 'POST') {
       let body = '';
       req.on('data', (c) => { body += c; });
@@ -861,7 +1018,29 @@ const server = createServer((req, res) => {
         try {
           const data = JSON.parse(body || '{}');
           if (typeof data.text !== 'string' || !data.text.trim()) return json(res, { error: 'text required' }, 400);
-          return json(res, savePrompt(data.text), 201);
+          return json(res, savePrompt(data), 201);
+        } catch (e) {
+          return json(res, { error: String(e && e.message || e) }, 500);
+        }
+      });
+      return;
+    }
+    if (url.pathname === '/api/prompts' && req.method === 'DELETE') {
+      const ok = deletePrompt(url.searchParams.get('id'));
+      return ok ? json(res, { ok: true }) : json(res, { error: 'not found' }, 404);
+    }
+    if (url.pathname === '/api/prompts/use' && req.method === 'POST') {
+      const p = markPromptUsed(url.searchParams.get('id'));
+      return p ? json(res, p) : json(res, { error: 'not found' }, 404);
+    }
+    if (url.pathname === '/api/prompts/common' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body || '{}');
+          const c = saveCommonPart(data.text);
+          return json(res, { common: c });
         } catch (e) {
           return json(res, { error: String(e && e.message || e) }, 500);
         }
