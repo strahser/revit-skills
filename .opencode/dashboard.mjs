@@ -357,6 +357,10 @@ nav button.active { background:var(--accent); color:#0b0f17; border-color:var(--
 .tree-item .icon { font-size:12px; }
 .tree-item .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tree-item .count { margin-left:auto; font-size:11px; color:var(--muted); }
+.tree-item .tree-del { border:none; background:transparent; color:var(--muted); font-size:11px; cursor:pointer; padding:2px 5px; border-radius:4px; line-height:1; flex:0 0 auto; }
+.tree-item .tree-del:hover { background:#c0392b; color:#fff; }
+.tree-item.active .tree-del { color:#9db4cc; }
+.tree-item.active .tree-del:hover { background:#c0392b; color:#fff; }
 .tree-children { padding-left:18px; }
 .tree-children.hidden { display:none; }
 .content { flex:1; overflow:auto; padding:20px 28px; }
@@ -822,7 +826,8 @@ async function loadPromptTree(){
     html += drafts.map((p,i) =>
       '<div class="tree-item" data-kind="draft" data-idx="'+i+'">'+
         '<span class="icon">📋</span><span class="name">'+esc(p.title||('#'+p.id))+'</span>'+
-        '<span class="count">'+(p.executions||0)+'</span></div>'
+        '<span class="count">'+(p.executions||0)+'</span>'+
+        '<button class="tree-del" data-id="'+p.id+'" title="Удалить промпт">✕</button></div>'
     ).join('');
   }
   el.innerHTML = html;
@@ -837,6 +842,15 @@ async function loadPromptTree(){
       $('prompt-category').value = p.category || 'general';
       flash('Промпт загружен в форму');
       document.getElementById('content').scrollTop = 0;
+    });
+  });
+  el.querySelectorAll('.tree-del').forEach(function(btn){
+    btn.addEventListener('click', async function(ev){
+      ev.stopPropagation();
+      if(!confirm('Удалить промпт «' + (btn.closest('.tree-item').querySelector('.name').textContent || '') + '»?')) return;
+      const r = await delReq('/api/prompts?id=' + encodeURIComponent(btn.dataset.id));
+      if(r.ok){ flash('Промпт удалён'); loadPromptTree(); }
+      else flash(r.error || 'Ошибка удаления');
     });
   });
 }
