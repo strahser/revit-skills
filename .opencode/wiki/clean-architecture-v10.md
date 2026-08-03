@@ -128,3 +128,49 @@ Core.csproj никогда не содержал Revit-пакетов — тра
 - Проверка дублей по содержимому (без учёта namespace) внутри DS: 0 совпадений, 120 файлов уникальны.
 - **Фикс `RevitServices.csproj` (CS0579)**: `Compile Include="**\*.cs"` без исключений включал сгенерированный `obj\...\AssemblyAttributes.cs` в компиляцию дважды → дублирующийся `TargetFrameworkAttribute`. Добавлено `Exclude="obj\**;bin\**"`.
 - Проверка: сборка sln Debug|AnyCPU ✓ (DeployAddin=false), Core.Tests 84/84 ✓.
+
+## Фаза 3: вынос Revit-сервисов из MainAppHeatLoss в RevitServices (блоки A–G)
+
+Цель — убрать из `MainAppHeatLoss` (presenter) всю Revit-логику, оставив только UI/ViewModels/DI/Commands. Финальная иерархия:
+
+```
+MainAppHeatLoss  (presenter: меню, UI, ViewModels, Views, DI, Adapters, BaseResources)
+      ↑ (ProjectReference → RevitServices, Core, Base, HeatLossExport)
+RevitServices    (Revit-сервисы: НЕТ UI, НЕТ DI-логики, НЕТ ссылок на MainAppHeatLoss)
+      ↑
+Core             (бизнес-логика, net48, БЕЗ Revit API)
+      ↑
+Base             (DTO/модели, БЕЗ Revit API)
+```
+
+### Блоки (все закоммичены)
+
+| Блок | Файлов | Назначение | Коммит |
+|------|-------:|------------|--------|
+| A Snapshot | 6 | SnapshotBuilder, Extractors | история |
+| B Rendering | 5 | ColorRenderer, DirectShapeBuilder, RevitPresenter | история |
+| C DirectShapeStructureDraw | 81 | стены/полы/окна/витражи → DirectShapes | `7009bc93` |
+| D ExternalWallsFinders | 27 | поиск наружных стен, маркеры | `1d97883f` |
+| E AdjacentSurfaces | ~58 | прилегающие поверхности | `bd1934a8` |
+| F ProjectSettings | 60 | установки (климат, углы, фильтры, параметры) | `ee4e0104` |
+| G ReportsCreator + PropertyData | 31 | отчёты (инфильтрация, теплопотери) + свойства | `acf258b7` |
+
+### Ключевые правила (выучены на блоках C–G)
+
+1. **Интерфейс в RevitServices, реализация в MainApp** (когда реализация тянет UI/DI):
+   `IUserInteractionService` (RevitServices) + `UserInteractionService` (MainApp);
+   `ICleanupService`/`IOpeningCreationService`/`IWallElementProvider` (RevitServices) + реализации в MainApp.
+2. **Файл остаётся в MainApp, если** тянет `MainApp.*`/`BaseResources`, имеет `.xaml`-компаньон, или использует NuGet, которой нет в RevitServices (EPPlus/Xceed). Исключения (остались в MainApp): `GsopCalculatorFromRevitData` (BaseResources), `InfiltrationExcelExportService` (EPPlus), `InfiltrationWordExportService` (DocX), `ValveSpaceMappingExporter`, `ValidationIssuesWindow.xaml.cs`.
+3. **Namespace-замена** в перенесённых файлах: `MainAppHeatLoss.<Блок>` → `RevitServices.<Блок>`.
+4. **XAML**: перенесённые `xmlns` → `clr-namespace:RevitServices.X;assembly=RevitServices`.
+5. **DoD grep** (`RevitServices` не должен ссылаться на presenter):
+   `grep -r "MainAppHeatLoss\." RevitServices` → 0 результатов (кроме комментариев).
+6. **Сборка/тесты как источник истины** (после каждого блока):
+   sln Debug EXIT 0, MainAppHeatLoss Debug.R24 EXIT 0, тесты 106/109 (3 предсуществующих падения Core: FullCalculation_ShouldApplyCornerSettingsAndCalculateCorrectTotals, UpdateSurfaceHeatLoss_SetsProperty, CalculateHeatLoss_WithNegativeDeltaPressure_ReturnsZero).
+
+### Фикс DoD (коммит `ef20d2fd`)
+`FacesDirectShapesSettingsService.cs` лежал в RevitServices, но имел namespace `MainAppHeatLoss...` → переименован в `RevitServices.DirectShapeStructureDraw.WallsFromFacesCreatorDS.Features.Configuration.Services`; обновлены 3 потребителя (ServiceCollectionExtensions, FacesDirectShapesSettingsManager, FacesDirectShapesViewModel — последние два получают двойной using: MainApp для Manager + RevitServices для Service).
+
+### Guard-слои (фазы 4–5): проверено, чисто
+- Base/Core/HeatLossExport **не содержат** `using Autodesk.*`, `ProjectReference`/`PackageReference` на RevitAPI/RevitAPIUI (проверено grep + csproj). Revit-зависимых DTO в Base/Core нет → перенос не требуется.
+- `RevitParameterAttribute` — обычный атрибут (без Revit API, только строка-тип параметра); резолвер типов — в `RevitServices\Attributes\RevitParameterTypeResolver.cs`.
