@@ -7,10 +7,10 @@
     "paths": [".opencode/skills"]
   },
   "references": {
-    "revit-skills": {
+    "agent-skills": {
       "repository": "strahser/revit-skills",
       "branch": "main",
-      "description": "Репозиторий навыков и базы знаний по Revit: .opencode/skills/ и .opencode/wiki/. Используй для контекста проекта Revit-плагинов и 3D-вьювера."
+      "description": "Библиотека навыков и базы знаний: Revit (.opencode/skills/), 3D-вьювер, cloud-ai-bridge, mcp-setup. Используй для контекста Revit-плагинов, 3D и агентской автоматизации."
     }
   },
   "permission": {
