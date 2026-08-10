@@ -113,3 +113,62 @@ Models/BuiltInCategoryHelper.cs  (русские ID категорий duct дл
   по свободному месту. Это поведение ядра 1, НЕ менять.
 - Duct/3D-фичи добавлять только в файлы ядра 2, не трогая священные файлы ядра 1.
 - Любое изменение священных файлов — только через отдельное согласование + golden-сравнение с v5CBR.
+
+---
+
+## Структура проектов (рефакторинг в фичи, чистая архитектура)
+
+Коммит `5de7ca1`: специфические алгоритмы вынесены в отдельные проекты.
+Core остаётся тонким базовым слоем. Фичи: отопление, вентиляция, кластеризация, 3D.
+
+### Целевая структура
+
+| Проект | Содержимое | Namespace | Зависит от |
+|---|---|---|---|
+| `Models` | DTO, геометрия, RoomHelper, IPlacementContext, **CorePlacementContext**, ISpaceValidator | Models | — |
+| `CoreCBR` | CBR-кейсы, Hungarian | CoreCBR | Models |
+| `Core` | CorePlacementProcessor, SuggestionCollector/PostProcessor, CollisionContext, PositionValidator, CollisionOrchestrator, CollisionAnalyzer, IStrategySelector, ICollisionStrategy, LeaderCollisionResolverBase, PipesLeaderCollisionResolver, Optimization, Exporters, Rules/Abstractions+Base, DI-каркас | Core | Models, CoreCBR, CoreClustering, Core3D |
+| `CoreClustering` | ClusterFactory, ClusterPlacementService, DenseTagPlacementService, FreeSpaceGridSearch, BoundingBox2DEnvelope | Core.Clustering | Models, RBush |
+| `CoreHeating` | Pipes/**, Equipment/**, PipeRule, EquipmentFloorPlanRule, фильтры, PipeCollisionResolver, EquipmentCollisionResolver, EquipmentLeaderCollisionResolver, **9 стратегий**, StrategySelector, Segmentation/**, Reduction/**, SegmentCsvExporter | Core.Heating | Models, Core |
+| `CoreVentilation` | Ducts/**, DuctRule, AirTerminalRule, DuctCollisionResolver, **AirTerminalCollisionResolver** | Core.Ventilation | Models, Core, CoreClustering |
+| `Core3D` | ThreeDProjectionService | Core.ThreeD | Models |
+| `RevitExport` | сбор данных Revit + **массовый снимок видов** (ViewSelectionWindow, Helper, ExportDataCommand) | RevitExport | Models |
+| `MepTagging` | UI, TaggingOrchestrator, ThreeDViewTaggingService, AxonometricViewService, ViewNamingService, CoreTagPlacementService, DI-композиция | MepTagging | Core, CoreHeating, CoreVentilation, CoreClustering, Core3D, RevitExport |
+
+### Ключевые разрывы зависимостей
+
+- `AirTerminalRule` использует **собственный** `AirTerminalCollisionResolver` (на базе общего
+  CollisionOrchestrator) — вентиляция НЕ зависит от отопления.
+- `LeaderCollisionResolverBase`/`PipesLeaderCollisionResolver` переведены на интерфейс
+  `ISpaceValidator` (Models) — остаются в Core как общие механизмы лидеров.
+- `CorePlacementContext` перенесён в `Models/Abstractions` — фичи не зависят от Core.
+- `CoreServiceCollection` (Core) вызывает только AddClusteringServices/AddThreeDServices.
+  AddHeatingServices/AddVentilationServices вызываются в MepTagging.ServiceCollectionDI
+  (избегаем цикла CoreHeating/CoreVentilation → Core).
+
+### DI-регистрация фич
+
+| Расширение | Проект | Где вызывается |
+|---|---|---|
+| `AddCoreTaggingServices` | Core | MepTagging, Core.Tests Harness |
+| `AddHeatingServices` | CoreHeating | MepTagging, Harness |
+| `AddVentilationServices` | CoreVentilation | MepTagging, Harness |
+| `AddClusteringServices` | CoreClustering | Core (AddCoreTaggingServices) |
+| `AddThreeDServices` | Core3D | Core (AddCoreTaggingServices) |
+| `AddCbrServices` | CoreCBR | MepTagging, Harness |
+
+### Массовый снимок видовых экранов
+
+Кнопка «Снимки видов» в Revit → ExportDataCommand:
+- ViewSelectionWindow (WPF-диалог, латиница) — выбор видов (этажи/разрезы/3D);
+- экспорт по каждому виду: `viewSnapshot.json`, `rooms.json`, `occupiedAreas.json`,
+  `profile.json`, `existingAnnotations.json` → `TestRevitData\CoreFixtures\<ViewName>\`;
+- пути: GetCoreFixturesRoot (E:\ПлагиныРевит\MepTaggingSolution\TestRevitData\CoreFixtures).
+
+### Правила для агентов
+
+- Священные файлы ядра 1 (см. список выше) — НЕ менять; любые изменения — через
+  отдельное согласование + golden-сравнение с v5CBR.
+- Новые специфические алгоритмы — в свой проект-фичу (CoreHeating/CoreVentilation/
+  CoreClustering/Core3D), а не в Core.
+- Общие механизмы (коллизии, оркестратор, оптимизация, контекст) — в Core/Models.
