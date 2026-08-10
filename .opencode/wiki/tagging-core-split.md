@@ -172,3 +172,31 @@ Core остаётся тонким базовым слоем. Фичи: отоп
 - Новые специфические алгоритмы — в свой проект-фичу (CoreHeating/CoreVentilation/
   CoreClustering/Core3D), а не в Core.
 - Общие механизмы (коллизии, оркестратор, оптимизация, контекст) — в Core/Models.
+
+---
+
+## Обновления (коммит 586517f)
+
+### 1. TemplateManager — отдельная команда
+- Кнопка «Шаблоны» на панели MepTagging → `OpenTemplateManagerCommand`.
+- Модуль живёт в `MepTagging/UI/TemplateManagement/` (команда + ViewModel + окно + RoomSelector).
+- Основной поток маркировки от него не зависит.
+
+### 2. Удалена мёртвая 3D-цепочка
+- Удалены: `TaggingOrchestrator`, `ThreeDViewTaggingService`, `AxonometricViewService`,
+  `ViewNamingService`, `TaggingDiag`, `TaggingFailuresPreprocessor`, проект `Core3D`.
+- Причина: 3D-виды строились для тестирования; из UI (TaggingViewModel) оркестратор
+  не вызывался — плановый путь использует `CoreTagPlacementService` напрямую.
+- Бизнес-логика не потеряна: реальная 3D-обработка (если понадобится) использует
+  собственный `ViewBasis` внутри `ThreeDViewTaggingService`, а не `ThreeDProjectionService`.
+
+### 3. Маркировка арматуры (кластеризация)
+- `Core.Rules.AccessoryRule` — базовое правило: кластерное размещение
+  (`ClusterPlacementService.PlaceClusteredElements`) + коллизии через `CollisionOrchestrator`.
+- `PipeAccessoryRule` (OST_PipeAccessory = -2008055, CoreHeating) —
+  арматура трубопроводов.
+- `DuctAccessoryRule` (OST_DuctAccessory = -2008016, CoreVentilation) —
+  арматура воздуховодов.
+- `ClusterFactory.BuildClusters(ElementGeometryData)` + `ElementCluster` —
+  обобщённая кластеризация точечных элементов.
+- Включение: `DirectionStrategy = Cluster` в профиле (как у труб/воздуховодов).
