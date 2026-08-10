@@ -174,3 +174,52 @@ Base             (DTO/модели, БЕЗ Revit API)
 ### Guard-слои (фазы 4–5): проверено, чисто
 - Base/Core/HeatLossExport **не содержат** `using Autodesk.*`, `ProjectReference`/`PackageReference` на RevitAPI/RevitAPIUI (проверено grep + csproj). Revit-зависимых DTO в Base/Core нет → перенос не требуется.
 - `RevitParameterAttribute` — обычный атрибут (без Revit API, только строка-тип параметра); резолвер типов — в `RevitServices\Attributes\RevitParameterTypeResolver.cs`.
+
+## Сценарии 3–4: реестр DirectShapes + pre-calculation валидация (выполнено)
+
+Ветка `feature/standalone-ui-webview2`, коммиты `b29bcba1`, `8eb3635a`. Назначение — синхронизация
+созданных DirectShapes с живой моделью Revit: перед каждым созданием реестр пересоздаётся,
+перед расчётом — сверяется с моделью (пропущенные элементы помечаются `MarkedAsDeleted`).
+
+### Новые файлы
+
+| Файл | Назначение |
+|---|---|
+| `Core\Database\IDirectShapeRegistry.cs` | Интерфейс реестра + `DirectShapeRegistryEntry` + `DirectShapeStatus` (даёт `Register/Unregister/GetAll/GetActive/MarkAsDeleted/MarkAsDeletedManually`) |
+| `Core\Database\JsonDirectShapeRegistry.cs` | Реализация на JSON-БД: `Register/Unregister/GetAll/MarkAsDeleted`; файл `%AppData%\HeatLossRevit2\data\directShapeRegistry\{projectKey}.json` |
+| `RevitServices\Validation\PreCalculationValidator.cs` | Валидация перед расчётом + `SyncRegistryWithModel()`: сравнивает реестр с живой моделью Revit, находит пропущенные DirectShapes |
+| `RevitServices\ExternalEvents\ReusableActionExternalEvent.cs` | Переиспользуемый `ExternalEvent` (замена `ActionExternalEvent`, который стал dead code) |
+
+### Изменённые файлы
+
+| Файл | Изменение |
+|---|---|
+| `Core\DependencyInjection\CoreServiceCollectionExtensions.cs` | `+IDirectShapeRegistry → JsonDirectShapeRegistry` (Singleton) |
+| `RevitServices\...\WallsBase\Services\WallProcessingService.cs` | `+IDirectShapeRegistry`, `projectKey` опционально; `Register` после создания, `Unregister` перед удалением (`UnregisterManyWithProjectKey`/`RegisterManyWithProjectKey`) |
+| `MainAppHeatLoss\...\WallsAllSpacesCreatorDSViewModel.cs` | `+_jsonDatabase`; создаёт `JsonDirectShapeRegistry` и передаёт в `WallProcessingService` |
+| `MainAppHeatLoss.Projects\CalculateHeatLoss\CalculateHeatLossCommand.cs` | pre-calculation валидация: `SyncRegistryWithModel()` → warning dialog (Continue/Cancel) → `MarkMissingAsDeleted()` |
+| `RevitServices\ExternalEvents\ExternalEventService.cs` | Pre-create `ExternalEvent` в `Initialize()` (плюс `MainAppHeatLoss\App.cs` — standalone UI) |
+
+### Потоки
+
+```
+СОЗДАНИЕ (Сценарий 3):
+  "Обработать все" → WallProcessingService.ProcessSpaces()
+    → DeleteExistingWallsForSpaces() → UnregisterManyWithProjectKey()
+    → CreateWallsForSpaces() → RegisterManyWithProjectKey()
+  Реестр: %AppData%\data\directShapeRegistry\{projectKey}.json
+
+РАСЧЁТ (Сценарий 4):
+  "Расчёт теплопотерь" → CalculateHeatLossCommand
+    → PreCalculationValidator.SyncRegistryWithModel()
+      → реестр vs живая модель Revit → если есть пропущенные → warning dialog
+      → Continue: MarkMissingAsDeleted() для пропущенных
+      → Cancel: прервать
+    → pipeline.Execute(snapshot) — расчёт на свежем снимке
+```
+
+### Примечания
+- `JsonDirectShapeRegistry` реализует также `MarkAsDeletedManually`/`GetActive` — добавлены в
+  интерфейс (коммит `8eb3635a`, иначе не компилировалось).
+- Dead code (удалить позже): `RevitServices\ExternalEvents\ActionExternalEvent.cs`.
+- План/спека синхронизации: `Docs\SyncValidationPlan.md`.
