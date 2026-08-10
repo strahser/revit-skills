@@ -9,10 +9,12 @@
 - [Project Structure](project-structure.md) — структура проекта MepBimServer
 - [MCP Servers](mcp-servers.md) — документация MCP-серверов
 - [Clean Architecture V10](clean-architecture-v10.md) — HeatLossRevit2: Revit=presenter, Core=бизнес-логика, Base=DTO
+- [Revit API: потоки и ExternalEvent](revit-external-events.md) — правило «Revit API только через ExternalEvent», диагноз deadlock в SpaceLinkingViewModel, аудит обращений
 - [Dashboard и OpenContext](dashboard-opencontext.md) — локальный веб-дашборд и глобальная база знаний
 - [Agent Workflow](agent-workflow.md) — самоуправление: добавление скилов, обновление wiki, git push
 - [Revit TUnit Tests](revit-tunit-tests.md) — unit-тесты Revit с подключением к процессу (TUnit, SnapshotTool)
 - [Django Task App](django-task-app.md) — планировщик задач: архитектура, переключение БД, фильтры, цель ToDoList
+- [MepTagging: Разделение ядра](tagging-core-split.md) — Ядро 1 (отопление, v5CBR) vs Ядро 2 (воздуховоды/3D/кластеризация); священные файлы и golden-тест идентичности
 
 ## Быстрые ссылки
 
