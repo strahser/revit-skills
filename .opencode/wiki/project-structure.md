@@ -20,15 +20,17 @@ MepBimServer\
   └── wwwroot\            — Статика
 ```
 
-## revit-skills (`E:\ПлагиныРевит\revit-skills\`)
+Локальная вики: `MepBimServer\.opencode\wiki\index.md`.
 
-Репозиторий OpenCode навыков и wiki.
+## agent-skills (`E:\ПлагиныРевит\agent-skills\`)
+
+Хаб знаний: общий репозиторий OpenCode навыков и wiki (`strahser/revit-skills`, main).
 
 ```
-revit-skills\
+agent-skills\
   └── .opencode\
-      ├── skills\         — Навыки (SKILL.md)
-      ├── wiki\           — База знаний (markdown)
+      ├── skills\         — Навыки (SKILL.md): Revit + конвейер dev-pipeline
+      ├── wiki\           — Хаб: общие темы + ссылки на локальные вики проектов
       └── README.md       — Описание репозитория
 ```
 
@@ -43,16 +45,23 @@ E:\ПлагиныРевит\
   │       ├── html-tools.js  — Валидация и форматирование HTML
   │       ├── threejs-tools.js  — Revit→Three.js координаты, bbox
   │       └── revit-tools.js    — Сборка, тесты, деплой плагина
-  ├── MepBimServer\          — Основной проект
-  └── revit-skills\          — Навыки + wiki
+  ├── agent-skills\           — Хаб знаний: скилы + wiki (ссылки на проекты)
+  ├── dev-pipeline\           — Фреймворк-конвейер задач (сервер, агенты, TDL)
+  ├── HeatLossRevit2\         — Проект: плагин теплопотерь (локальная вики)
+  ├── MepBimServer\           — Основной Revit/ASP.NET проект (локальная вики)
+  ├── MepTaggingSolution\     — Проект: маркировка MEP (локальная вики)
+  └── AHUCalculator\          — Проект: расчёт установок (локальная вики)
 ```
+
+Каждый проект ведёт локальную вики в `<проект>\.opencode\wiki\index.md`;
+навигация по всем проектам — в `agent-skills\.opencode\wiki\index.md`.
 
 ## Глобальные плагины (`~/.config/opencode/`)
 
 Те же 3 плагина продублированы в глобальную директорию, чтобы загружаться при открытии любого проекта:
 ```
 ~/.config/opencode/
-  ├── opencode.jsonc       — MCP + skills.paths
+  ├── opencode.jsonc       — MCP + skills.paths (вкл. agent-skills\.opencode\skills)
   ├── package.json         — @opencode-ai/plugin
   └── plugins/
       ├── html-tools.js

@@ -1,28 +1,34 @@
-# AGENTS.md — revit-skills (база знаний по Revit)
+# AGENTS.md — agent-skills (база знаний по Revit)
 
-**Роль репозитория:** общая база знаний и справочник скилов по Revit-разработке.
-Это НЕ конвейер задач (конвейер — dev-pipeline) и НЕ рабочий проект (HeatLossRevit2 и др.).
-Здесь живут **знания**: wiki проекта + общие скилы, которые нельзя точно отнести к агенту.
+**Роль репозитория:** общий хаб знаний и справочник скилов по Revit-разработке и
+конвейеру dev-pipeline. Это НЕ конвейер задач (dev-pipeline) и НЕ рабочий проект
+(HeatLossRevit2 и др.). Здесь живут **знания**: общая wiki (навигация по проектам) +
+общие скилы.
 
 ## Структура
 
-- Скилы: `.opencode/skills/` — revit-api, revit-testing, revit-test-fixtures, revit-test-runner,
-  revit-3d-export, revit-json-serialization, threejs-viewer, mcp-setup, revit-wiki, cloud-ai-bridge
-- Wiki: `.opencode/wiki/` — читай `index.md` при старте сессии; страницы:
-  `clean-architecture-v10.md` (HeatLossRevit2), `revit-export.md`, `3d-viewer.md`,
-  `project-structure.md`, `mcp-servers.md`, `agent-workflow.md`, `revit-tunit-tests.md`,
-  `dashboard-opencontext.md`, `django-task-app.md`
+- Скилы: `.opencode/skills/` — revit-api, revit-testing, revit-test-fixtures,
+  revit-test-runner, revit-3d-export, revit-json-serialization, threejs-viewer,
+  mcp-setup, revit-wiki, cloud-ai-bridge + скилы конвейера (перенесены из dev-pipeline):
+  pipeline-controller, pipeline-executor, pipeline-reviewer, pipeline-planner,
+  pipeline-browser-bridge, pipeline-qwen-worker, pipeline-placement-expert,
+  planning-with-files, architect-review, software-architecture, solid-principles, knowledge-base.
+- Wiki (общая): `.opencode/wiki/index.md` — навигация: общие темы (MCP, workflow,
+  структура, дашборд) + **ссылки на локальные вики проектов**.
+- Локальные вики проектов (в каждом проекте): `<project>\.opencode\wiki\index.md` —
+  HeatLossRevit2, MepBimServer, MepTaggingSolution, dev-pipeline, AHUCalculator.
 - Git: `main`, remote `https://github.com/strahser/revit-skills.git`. Перед работой: `git pull`.
 
 ## Как пополняется база знаний
 
 1. Агенты конвейера dev-pipeline (executor/controller/reviewer/qwen-worker) получают новое
-   стабильное знание при выполнении задач — и записывают его сюда (см. скилл `knowledge-base`
-   в dev-pipeline).
-2. Локальный путь: `D:\Projects\revit-skills\` (рабочий ПК: `E:\ПлагиныРевит\revit-skills\`).
+   стабильное знание при выполнении задач — и записывают его в **локальную вику проекта**
+   или общую wiki (см. скилл `knowledge-base`).
+2. Общее знание (паттерны, форматы, MCP) → agent-skills; знание конкретного проекта →
+   `<проект>\.opencode\wiki\`.
 3. Формат: markdown; заголовок H1; ссылки относительные; commit message на английском, краткий
    (до 80 символов). Коммиты делает контролёр (Агент-1): `docs:` или `agent/A-NN: wiki: ...`.
-4. Новую страницу — добавить ссылку в `wiki/index.md`.
+4. Новую страницу — добавить ссылку в `wiki/index.md` соответствующей вики.
 5. Не удалять существующие страницы и скилы без явной необходимости.
 
 ## Что НЕ делать

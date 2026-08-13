@@ -15,15 +15,28 @@
 | [threejs-viewer](skills/threejs-viewer/SKILL.md) | Архитектура Three.js 3D вьювера |
 | [mcp-setup](skills/mcp-setup/SKILL.md) | Настройка MCP серверов |
 | [revit-wiki](skills/revit-wiki/SKILL.md) | База знаний проекта (автозагрузка при старте) |
+| [cloud-ai-bridge](skills/cloud-ai-bridge/SKILL.md) | Роутинг задач к облачному ИИ (DeepSeek/Qwen) |
+| [pipeline-controller](skills/pipeline-controller/SKILL.md) | Агент-1: диспетчер/контролёр конвейера dev-pipeline |
+| [pipeline-executor](skills/pipeline-executor/SKILL.md) | Агент-2: сотрудник-исполнитель конвейера |
+| [pipeline-reviewer](skills/pipeline-reviewer/SKILL.md) | Ревьюер: git-аудит, PASS/NEEDS_CHANGES/FAIL |
+| [pipeline-planner](skills/pipeline-planner/SKILL.md) | Планировщик миссий/декомпозиция задач |
+| [pipeline-browser-bridge](skills/pipeline-browser-bridge/SKILL.md) | Агент-3: мост к облачному ИИ (LocalAssitent) |
+| [pipeline-qwen-worker](skills/pipeline-qwen-worker/SKILL.md) | Тяжёлый воркер через облачный Qwen |
+| [pipeline-placement-expert](skills/pipeline-placement-expert/SKILL.md) | Эксперт по расстановке тегов (MepTaggingSolution) |
+| [planning-with-files](skills/planning-with-files/SKILL.md) | Планирование с файлами (task_plan/findings/progress) |
+| [architect-review](skills/architect-review/SKILL.md) | Архитектурное ревью (read-only) |
+| [software-architecture](skills/software-architecture/SKILL.md) | Clean Architecture/DDD паттерны |
+| [solid-principles](skills/solid-principles/SKILL.md) | SOLID-принципы для классов/модулей |
+| [knowledge-base](skills/knowledge-base/SKILL.md) | Правила пополнения базы знаний |
 
 ## Wiki
 
-База знаний проекта: [wiki/](wiki/index.md)
+Хаб знаний: [wiki/](wiki/index.md) — ссылки на локальные вики проектов + общие темы.
 
-- [Revit JSON Export](wiki/revit-export.md) — спецификация формата экспорта
-- [3D Viewer](wiki/3d-viewer.md) — архитектура и отладка
 - [Project Structure](wiki/project-structure.md) — структура репозиториев
 - [MCP Servers](wiki/mcp-servers.md) — документация MCP
+- Локальные вики проектов: HeatLossRevit2, MepBimServer, MepTaggingSolution, dev-pipeline, AHUCalculator
+  (`<проект>\.opencode\wiki\index.md`)
 
 ## Установка
 

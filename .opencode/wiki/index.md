@@ -1,24 +1,34 @@
-# Revit Skills Wiki
+# Revit Skills Wiki — хаб знаний
 
-База знаний по Revit плагинам и 3D-вьюверу.
+Общий хаб: навигация по локальным вики **проектов** и общие темы. Каждый проект ведёт
+свою локальную вики в `<проект>\.opencode\wiki\`, здесь — ссылки на них и общий справочник.
 
-## Разделы
+## Проекты (локальные вики)
 
-- [Revit JSON Export](revit-export.md) — спецификация формата экспорта
-- [3D Viewer](3d-viewer.md) — архитектура и отладка three.js вьювера
-- [Project Structure](project-structure.md) — структура проекта MepBimServer
-- [MCP Servers](mcp-servers.md) — документация MCP-серверов
-- [Clean Architecture V10](clean-architecture-v10.md) — HeatLossRevit2: Revit=presenter, Core=бизнес-логика, Base=DTO
-- [Revit API: потоки и ExternalEvent](revit-external-events.md) — правило «Revit API только через ExternalEvent», диагноз deadlock в SpaceLinkingViewModel, аудит обращений
-- [Dashboard и OpenContext](dashboard-opencontext.md) — локальный веб-дашборд и глобальная база знаний
+| Проект | Локальная вики | Что внутри |
+|--------|----------------|------------|
+| HeatLossRevit2 | [`E:\ПлагиныРевит\HeatLossRevit2\.opencode\wiki\index.md`](../../../HeatLossRevit2/.opencode/wiki/index.md) | Clean Architecture V10, ExternalEvent, баги создания стен, UI теплопотерь, TUnit-тесты |
+| MepBimServer | [`E:\ПлагиныРевит\MepBimServer\.opencode\wiki\index.md`](../../../MepBimServer/.opencode/wiki/index.md) | JSON-экспорт Revit, архитектура Three.js вьювера |
+| MepTaggingSolution | [`E:\ПлагиныРевит\MepTaggingSolution\.opencode\wiki\index.md`](../../../MepTaggingSolution/.opencode/wiki/index.md) | Разделение ядра (Ядро 1/Ядро 2), баги размещения марок |
+| dev-pipeline | [`E:\ПлагиныРевит\dev-pipeline\.opencode\wiki\index.md`](../../../dev-pipeline/.opencode/wiki/index.md) | Конвейер задач: protocol/architecture/runbook, скилы конвейера |
+| AHUCalculator | [`E:\ПлагиныРевит\AHUCalculator\.opencode\wiki\index.md`](../../../AHUCalculator/.opencode/wiki/index.md) | Расчёт приточных установок (конвейерный проект) |
+
+## Общие темы (здесь, в agent-skills)
+
+- [MCP Servers](mcp-servers.md) — документация MCP-серверов (opencode-browser, playwright, storage, …)
 - [Agent Workflow](agent-workflow.md) — самоуправление: добавление скилов, обновление wiki, git push
-- [Revit TUnit Tests](revit-tunit-tests.md) — unit-тесты Revit с подключением к процессу (TUnit, SnapshotTool)
-- [Django Task App](django-task-app.md) — планировщик задач: архитектура, переключение БД, фильтры, цель ToDoList
-- [MepTagging: Разделение ядра](tagging-core-split.md) — Ядро 1 (отопление, v5CBR) vs Ядро 2 (воздуховоды/3D/кластеризация); священные файлы и golden-тест идентичности
-- [MepTagging: баги размещения марок приборов и труб](tagging-marking-bugs.md) — марки приборов внутри помещений (профиль без архитектурной ссылки + FindFreePoint), не удалялись старые марки труб, двойная выноска вместо одинарной
-- [Создание стен: исправление багов](walls-creation-fixes.md) — радио «Пользовательская» в WallsAllSpacesCreatorDS; «Ошибка создания стен по функции/по типам» в WallsFromFacesCreatorDS
-- [Окно теплопотерь и панель свойств: исправления](heatloss-ui-fixes-2026-08-11.md) — метод инфильтрации Sum/Max в конвейере; валидация удалённых моделей; сводки по типам/уровням; «Детализация»; PropertyPalette
-- [Настройки, валидация, хранение](heatloss-settings-validation-storage-2026-08-11.md) — единый источник настроек (configs/ vs JSON-БД); static-флаг → явная передача; самоизлечение реестра (Adopted/DeletedProgrammatically); content-addressed снимки + snapshotHash
+- [Project Structure](project-structure.md) — структура репозиториев и рабочего пространства
+- [Dashboard и OpenContext](dashboard-opencontext.md) — локальный веб-дашборд, глобальная база знаний
+- [Django Task App](django-task-app.md) — планировщик задач (проект вне E:\ПлагиныРевит)
+
+## Скилы
+
+Все скилы (Revit + конвейер dev-pipeline) — в `agent-skills\.opencode\skills\`:
+- Revit: revit-api, revit-testing, revit-test-fixtures, revit-test-runner, revit-3d-export,
+  revit-json-serialization, threejs-viewer, mcp-setup, revit-wiki, cloud-ai-bridge
+- Конвейер: pipeline-controller, pipeline-executor, pipeline-reviewer, pipeline-planner,
+  pipeline-browser-bridge, pipeline-qwen-worker, pipeline-placement-expert, planning-with-files,
+  architect-review, software-architecture, solid-principles, knowledge-base
 
 ## Быстрые ссылки
 
