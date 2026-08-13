@@ -65,6 +65,45 @@
   число удалённых марок и категории, пропущенные (не в списке удаления). Теперь видно, почему
   марки не удалены.
 
+## Тип маркировки (MarkingType) и эргономичный UI
+
+### MarkingType вместо MepSection
+
+`MepSection` (ОВ/ВК) заменён на **`MarkingType`** (профиль `Models/MarkingType.cs`):
+
+- `WaterSupply` — ВК (водоснабжение и канализация);
+- `Heating` — ОВ: отопление (трубы отопления, отопительные приборы, арматура трубопроводов);
+- `Ventilation` — ОВ: вентиляция (воздуховоды, воздухораспределители, арматура воздуховодов);
+- `PipeBridges` — ОВ: трубопроводные мосты (пучки труб).
+
+Поле профиля: `TaggingProfile.MarkingType` (по умолчанию `Heating`).
+Профили переведены: `"markingType": "Heating"` (было `"section"`).
+
+### Гейтинг стратегий по типу
+
+`MarkingVariantResolver.IsVariantAllowed(MarkingType, ViewTypeCore, MarkingVariant)`:
+- планы → разрешаются правила, соответствующие типу: `Heating` → только `MarkingVariant.Heating`
+  (PipeRule, EquipmentFloorPlanRule, PipeAccessoryRule); `Ventilation` → только `Ventilation`
+  (DuctRule, AirTerminalRule, DuctAccessoryRule); `PipeBridges` → `PipeBridges`;
+- ВК — заглушка: разрешает `Heating`;
+- 3D — только `ThreeD`.
+
+Проверяется в `SuggestionCollector` / `SuggestionPostProcessor` (правило пропускается,
+если его стратегия не разрешена для типа) и в CBR/кластеризации.
+
+### Эргономичный UI с вертикальным меню
+
+`TaggingWindow.xaml` переработан: слева **вертикальное меню** (радио-элементы) с разделами,
+справа — контент одного раздела (меньше информации одновременно):
+
+- **Профиль и раздел** — выбор профиля, **тип маркировки (радио-группа из 4)**, архитектурная ссылка;
+- **Виды** — выбор видов для маркировки;
+- **Правила категорий** — список категорий + вкладки «Основные»/«Детальные» + выбор марки;
+- **Запуск** — кнопка запуска + результат.
+
+Переключение панелей и обработка радио-типа — в `TaggingWindow.xaml.cs`
+(`Menu_Checked`, `Type_Checked`, `SyncTypeRadioFromViewModel`).
+
 ## Связанные файлы
 
 - `CoreHeating/Placement/Equipment/CoreDefaultDirectionProvider.cs`
@@ -72,7 +111,10 @@
 - `RevitExport/Providers/ArchitectureLinkManager.cs`
 - `RevitExport/Collectors/RoomPolygonCollector.cs`
 - `MepTagging.UI/UI/ViewModels/TaggingViewModel.cs`
+- `MepTagging.UI/UI/Views/TaggingWindow.xaml` (+ `.xaml.cs`)
 - `MepTagging/Placement/CoreTagPlacementService.cs`
 - `Models/TagRule.cs`
+- `Models/MarkingType.cs`, `Models/MarkingVariant.cs`, `Models/MarkingVariantResolver.cs`
+- `Models/TaggingProfile.cs`, `Models/Abstractions/CorePlacementContext.cs`
 - `Models/ProfileLastUsedStore.cs`
 - `RevitExport/Services/SnapshotProfile.cs`
