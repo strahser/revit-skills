@@ -12,6 +12,7 @@
 | MepTaggingSolution | [`E:\ПлагиныРевит\MepTaggingSolution\.opencode\wiki\index.md`](../../../MepTaggingSolution/.opencode/wiki/index.md) | Разделение ядра (Ядро 1/Ядро 2), баги размещения марок |
 | dev-pipeline | [`E:\ПлагиныРевит\dev-pipeline\.opencode\wiki\index.md`](../../../dev-pipeline/.opencode/wiki/index.md) | Конвейер задач: protocol/architecture/runbook, скилы конвейера |
 | AHUCalculator | [`E:\ПлагиныРевит\AHUCalculator\.opencode\wiki\index.md`](../../../AHUCalculator/.opencode/wiki/index.md) | Расчёт приточных установок (конвейерный проект) |
+| DwgParser | [`E:\ПлагиныРевит\DwgParser\.opencode\wiki\index.md`](../../../DwgParser/.opencode/wiki/index.md) | Парсинг DWG/DXF/PDF (BimExtractor, C#): таблицы спецификаций, PDF-блоки (table/text), кодировка cp1251, HTML-отчёты (АР/КЖ/КМ/ВК) |
 
 ## Общие темы (здесь, в agent-skills)
 
