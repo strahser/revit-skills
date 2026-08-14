@@ -7,7 +7,7 @@
 
 | Проект | Локальная вики | Что внутри |
 |--------|----------------|------------|
-| HeatLossRevit2 | [`E:\ПлагиныРевит\HeatLossRevit2\.opencode\wiki\index.md`](../../../HeatLossRevit2/.opencode/wiki/index.md) | Clean Architecture V10, ExternalEvent, баги создания стен, UI теплопотерь, флаг наружности проёмов, настройки + JSON-хранение; TUnit-тесты |
+| HeatLossRevit2 | [`E:\ПлагиныРевит\HeatLossRevit2\.opencode\wiki\index.md`](../../../HeatLossRevit2/.opencode/wiki/index.md) | Clean Architecture V10, ExternalEvent, баги создания стен, UI теплопотерь, флаг наружности проёмов, настройки + JSON-хранение; ������ ������� WPF (2026-08-14); TUnit-тесты |
 | MepBimServer | [`E:\ПлагиныРевит\MepBimServer\.opencode\wiki\index.md`](../../../MepBimServer/.opencode/wiki/index.md) | JSON-экспорт Revit, архитектура Three.js вьювера |
 | MepTaggingSolution | [`E:\ПлагиныРевит\MepTaggingSolution\.opencode\wiki\index.md`](../../../MepTaggingSolution/.opencode/wiki/index.md) | Разделение ядра (Ядро 1/Ядро 2), баги размещения марок, задачи 2026-08-13 (ExternalEvent, немодальное окно, пофазовые логи, таблица-виджеты правил) и 2026-08-13_1 (ОВ/ВК + локальные стратегии, трубные мосты) |
 | dev-pipeline | [`E:\ПлагиныРевит\dev-pipeline\.opencode\wiki\index.md`](../../../dev-pipeline/.opencode/wiki/index.md) | Конвейер задач: protocol/architecture/runbook, скилы конвейера |
