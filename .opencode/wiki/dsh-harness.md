@@ -65,7 +65,22 @@ sessions = api("session.list")
 ```
 
 Полезные методы: `session.create`, `session.prompt`, `session.history`,
-`session.list`, `llm.providers`. Сессии хранятся в `C:\Users\Strakhov\.dsh\sessions\`.
+`session.list`, `session.rename`, `session.selectModel`, `session.models`,
+`llm.providers`. Сессии хранятся в `C:\Users\Strakhov\.dsh\sessions\`.
+
+## Организация сессий
+
+- «Папка» сессии в UI = её **рабочая директория (cwd)**, задаётся при создании
+  (`session.create {"cwd": ...}`) и **не может быть изменена позже** (переноса
+  сессии между папками нет — `session.rename` меняет только заголовок).
+- Правило: каждая новая задача = `session.create` с cwd проекта + осмысленный
+  заголовок через `session.rename`. Старые тестовые сессии в корне/DSH — мусор,
+  их можно не использовать (удаления через API нет).
+- `session.selectModel {sessionId, provider, model}` — выбор модели **на сессию**
+  (именно это делает пикер модели в UI). Применяется сразу, к следующему ходу;
+  рестарт и правка settings.yaml не нужны.
+- Бесплатные модели: `opencode/deepseek-v4-flash-free` (дефолт), `opencode/big-pickle`
+  (оба — OpenCode Free). `opencode-go/deepseek-v4-flash` — платный шлюз.
 
 ## Скилы
 
