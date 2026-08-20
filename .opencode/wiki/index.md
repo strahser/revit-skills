@@ -7,12 +7,13 @@
 
 | Проект | Локальная вики | Что внутри |
 |--------|----------------|------------|
-| HeatLossRevit2 | [`E:\ПлагиныРевит\HeatLossRevit2\.opencode\wiki\index.md`](../../../HeatLossRevit2/.opencode/wiki/index.md) | Clean Architecture V10, ExternalEvent, баги создания стен, UI теплопотерь, флаг наружности проёмов, настройки + JSON-хранение; ������ ������� WPF (2026-08-14); TUnit-тесты |
+| HeatLossRevit2 | [`E:\ПлагиныРевит\HeatLossRevit2\.opencode\wiki\index.md`](../../../HeatLossRevit2/.opencode/wiki/index.md) | Clean Architecture V10, ExternalEvent, баги создания стен, UI теплопотерь, флаг наружности проёмов, настройки + JSON-хранение; ������ ������� WPF (2026-08-14); TUnit-тесты |
 | MepBimServer | [`E:\ПлагиныРевит\MepBimServer\.opencode\wiki\index.md`](../../../MepBimServer/.opencode/wiki/index.md) | JSON-экспорт Revit, архитектура Three.js вьювера |
 | MepTaggingSolution | [`E:\ПлагиныРевит\MepTaggingSolution\.opencode\wiki\index.md`](../../../MepTaggingSolution/.opencode/wiki/index.md) | Разделение ядра (Ядро 1/Ядро 2), баги размещения марок, задачи 2026-08-13 (ExternalEvent, немодальное окно, пофазовые логи, таблица-виджеты правил) и 2026-08-13_1 (ОВ/ВК + локальные стратегии, трубные мосты) |
 | dev-pipeline | [`E:\ПлагиныРевит\dev-pipeline\.opencode\wiki\index.md`](../../../dev-pipeline/.opencode/wiki/index.md) | Конвейер задач: protocol/architecture/runbook, скилы конвейера |
 | AHUCalculator | [`E:\ПлагиныРевит\AHUCalculator\.opencode\wiki\index.md`](../../../AHUCalculator/.opencode/wiki/index.md) | Расчёт приточных установок (конвейерный проект) |
 | DwgParser | [`E:\ПлагиныРевит\DwgParser\.opencode\wiki\index.md`](../../../DwgParser/.opencode/wiki/index.md) | Парсинг DWG/DXF/PDF (BimExtractor, C#): таблицы спецификаций, PDF-блоки (table/text), кодировка cp1251, HTML-отчёты (АР/КЖ/КМ/ВК) |
+| DesignBase | [`E:\ПлагиныРевит\DesignBase\.opencode\wiki\index.md`](../../../DesignBase/.opencode/wiki/index.md) | RAG по проектной документации ВВ-17+М1: SQLite+FTS5 (26,797 chunks), DOCX/PDF/DWG→реестр листов/объектов, DWG title block detection (bbox 185×55mm + block-name + PaperSpace layer), PDF text extraction (7,028 pages), LLM-ответ с цитатами, golden-eval 8/8. ВЗУ ТСГ, Делаваль, Родин (дедупликация) |
 
 ## Общие темы (здесь, в agent-skills)
 
