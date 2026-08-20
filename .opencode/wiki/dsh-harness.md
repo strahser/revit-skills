@@ -82,6 +82,35 @@ sessions = api("session.list")
 - Бесплатные модели: `opencode/deepseek-v4-flash-free` (дефолт), `opencode/big-pickle`
   (оба — OpenCode Free). `opencode-go/deepseek-v4-flash` — платный шлюз.
 
+## Специализированные агенты (аналог агентов dev-pipeline)
+
+DSH умеет создавать и управлять специализированными агентами (проверено live):
+
+- **Прессеты агентов** = каталог с `agent.cordis.yml` (состав: tools, skills,
+  persona, permissions). Встроенные: `standard` (дефолт), `code` (PTC),
+  `minimal`, `cordis` (создание пресетов).
+- **Создание = копирование** (copy-only): `agentPreset.copy {from, agentPreset, name}`
+  → `C:\Users\Strakhov\.dsh\.agent-presets\<id>\` (agent.cordis.yml + preset.yml),
+  дальше правка файлов. Управление: `agentPreset.list/read/remove/select`.
+- **Выбор пресета — на сессию**: при `session.create {agentPreset}` или
+  `agentPreset.select {sessionId, agentPreset}`; переключение только на пустой
+  сессии (`agent-preset-locked`).
+- **Субагенты**: провайдеры `spawn`/`fork` (in-process, уже установлены),
+  child наследует пресет родителя; управление через API
+  `subagent.list/prompt/history/interrupt` (list требует `parentSessionId`).
+- Для ролей dev-pipeline (controller/planner/executor/reviewer) новых плагинов
+  не нужно: пресет = копия standard + свой agent.cordis.yml со скилами
+  (скилы уже подключены через skill-filesystem.customSkillDirs).
+
+## Плагины харнесса
+
+DSH **не опубликован на GitHub** — официальные плагины ставятся из npm
+(scope `@deepseek-ai/dsh-*`, версия rc.7 установлена, rc.8 доступна).
+Все официальные плагины уже стоят локально; сторонние опции (npm, не GitHub):
+`ai-sdk-provider-claude-code`, `ai-sdk-provider-codex-cli`,
+`ai-sdk-provider-opencode-sdk` — подключение внешних агентов (Claude Code,
+codex, opencode) как субагентов через ACP-провайдер.
+
 ## Скилы
 
 Каталог харнесса строится из `agent-skills\.opencode\skills\` (22 скила, live-watch —
