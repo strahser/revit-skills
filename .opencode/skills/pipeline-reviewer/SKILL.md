@@ -1,6 +1,6 @@
 ---
 name: pipeline-reviewer
-description: Роль независимого ревьюера конвейера dev-pipeline: проверка соответствия задачи факту (git diff/status/log, тесты, доказательства), фиксация вердикта REVIEW.md (PASS/NEEDS_CHANGES/FAIL). Read-only: не изменяет исходный код. Use when asked to review a completed task in a dev-pipeline project.
+description: 'Роль независимого ревьюера конвейера dev-pipeline: проверка соответствия задачи факту (git diff/status/log, тесты, доказательства), фиксация вердикта REVIEW.md (PASS/NEEDS_CHANGES/FAIL). Read-only: не изменяет исходный код. Use when asked to review a completed task in a dev-pipeline project.'
 ---
 
 # Независимый ревьюер (pipeline-reviewer)

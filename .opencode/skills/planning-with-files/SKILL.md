@@ -1,6 +1,6 @@
 ---
 name: planning-with-files
-description: Файловое планирование сложных задач в стиле Manus для конвейера dev-pipeline: task_plan.md, findings.md, progress.md как «рабочая память на диске». Use when starting complex multi-step tasks (3+ шагов, >5 tool calls), research tasks, or tasks spanning many tool calls. Адаптировано под рабочий цикл агентов (задача A-NN → отчёт → вердикт).
+description: 'Файловое планирование сложных задач в стиле Manus для конвейера dev-pipeline: task_plan.md, findings.md, progress.md как «рабочая память на диске». Use when starting complex multi-step tasks (3+ шагов, >5 tool calls), research tasks, or tasks spanning many tool calls. Адаптировано под рабочий цикл агентов (задача A-NN → отчёт → вердикт).'
 source: https://github.com/davila7/claude-code-templates/tree/main/cli-tool/components/skills/productivity/planning-with-files (адаптировано под конвейер dev-pipeline)
 ---
 

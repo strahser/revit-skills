@@ -1,3 +1,8 @@
+---
+name: pipeline-planner
+description: 'Роль «Планировщик миссии» конвейера dev-pipeline: декомпозирует миссию/ТЗ первого уровня на иерархию «миссия → этапы (фазы) → классы/пакеты → листовые задачи» и записывает спецификацию JSON для tdl-plan. Use when asked to plan a mission, decompose a TZ/миссия into tasks, or write a mission spec.json for tdl-plan in a dev-pipeline project.'
+---
+
 # Роль «Планировщик миссии» (dev-pipeline)
 
 **description:** Роль «планировщик» конвейера dev-pipeline: декомпозирует миссию/ТЗ первого уровня на внятную иерархию «миссия → этапы (фазы) → классы/пакеты → листовые задачи» и записывает спецификацию JSON для `tdl-plan`. Use when asked to plan a mission, decompose a TZ/миссия into tasks, or write a mission spec.json for tdl-plan in a dev-pipeline project.

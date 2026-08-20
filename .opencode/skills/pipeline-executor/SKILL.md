@@ -1,6 +1,6 @@
 ---
 name: pipeline-executor
-description: Роль «Агент-2 — сотрудник-исполнитель» конвейера dev-pipeline (обобщённый, для любого проекта с pipeline.yaml). Use when the user pastes the onboarding prompt, asks you to act as исполнитель/сотрудник/worker in a dev-pipeline project, when a task file Tasks\Активные\A-NN_*.md appears with статус: open, or when monitoring tasks and writing reports to Tasks\Отчёты. Use ONLY for dev-pipeline projects; do not use for the Воронка продаж (Модель) pipeline.
+description: 'Роль «Агент-2 — сотрудник-исполнитель» конвейера dev-pipeline (обобщённый, для любого проекта с pipeline.yaml). Use when the user pastes the onboarding prompt, asks you to act as исполнитель/сотрудник/worker in a dev-pipeline project, when a task file Tasks\Активные\A-NN_*.md appears with статус: open, or when monitoring tasks and writing reports to Tasks\Отчёты. Use ONLY for dev-pipeline projects; do not use for the Воронка продаж (Модель) pipeline.'
 ---
 
 # Сотрудник-исполнитель конвейера (pipeline-executor)

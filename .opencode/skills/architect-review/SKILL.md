@@ -1,6 +1,6 @@
 ---
 name: architect-review
-description: Ревью архитектуры и крупных изменений в проектах конвейера (C# .NET Framework, Revit-плагин HeatLossRevit2): проверка границ слоёв (Core/RevitServices/MainAppHeatLoss), SOLID, DDD, Clean Architecture, оценка масштабируемости и рисков. Use when reviewing system architecture, major design changes, or assessing architecture compliance. Read-only: рекомендации, не правки кода.
+description: 'Ревью архитектуры и крупных изменений в проектах конвейера (C# .NET Framework, Revit-плагин HeatLossRevit2): проверка границ слоёв (Core/RevitServices/MainAppHeatLoss), SOLID, DDD, Clean Architecture, оценка масштабируемости и рисков. Use when reviewing system architecture, major design changes, or assessing architecture compliance. Read-only: рекомендации, не правки кода.'
 source: https://github.com/sickn33/antigravity-awesome-skills/tree/main/skills/architect-review (адаптировано под C#-стек и слои HeatLossRevit2)
 ---
 

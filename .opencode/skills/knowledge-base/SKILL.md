@@ -1,6 +1,6 @@
 ---
 name: knowledge-base
-description: Общая база знаний по Revit-плагинам и 3D-вьюверу (репозиторий strahser/revit-skills, рабочая копия agent-skills): хаб wiki в .opencode/wiki/ + локальные вики проектов (<проект>\.opencode\wiki\) + общие скилы в .opencode/skills/ (revit-api, revit-testing, revit-3d-export, threejs-viewer, pipeline-* и др.). Use when starting work on a Revit-related task (нужен контекст архитектуры/форматов/паттернов), when learning something new about the project (обнови локальную вики проекта или общий хаб), or when asked to maintain the project knowledge base.
+description: 'Общая база знаний по Revit-плагинам и 3D-вьюверу (репозиторий strahser/revit-skills, рабочая копия agent-skills): хаб wiki в .opencode/wiki/ + локальные вики проектов (<проект>\.opencode\wiki\) + общие скилы в .opencode/skills/ (revit-api, revit-testing, revit-3d-export, threejs-viewer, pipeline-* и др.). Use when starting work on a Revit-related task (нужен контекст архитектуры/форматов/паттернов), when learning something new about the project (обнови локальную вики проекта или общий хаб), or when asked to maintain the project knowledge base.'
 ---
 
 # Knowledge Base (agent-skills)

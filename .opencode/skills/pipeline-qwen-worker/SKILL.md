@@ -1,6 +1,6 @@
 ---
 name: pipeline-qwen-worker
-description: Роль «бесплатного рабочего» (локальный агент deepseek free) + облачный Qwen. Ты — тонкий локальный агент: формулируешь задачу, отправляешь контекст в облачный Qwen через qwen_bridge, Qwen генерирует/пишет файлы (FILE:-блоки), ты применяешь их, собираешь и проверяешь. Экономия: тяжёлая генерация — у Qwen (бесплатно), ты — только оркестрация и проверка. Use when a task needs heavy code generation and the local free model should delegate file writing to cloud Qwen.
+description: 'Роль «бесплатного рабочего» (локальный агент deepseek free) + облачный Qwen. Ты — тонкий локальный агент: формулируешь задачу, отправляешь контекст в облачный Qwen через qwen_bridge, Qwen генерирует/пишет файлы (FILE:-блоки), ты применяешь их, собираешь и проверяешь. Экономия: тяжёлая генерация — у Qwen (бесплатно), ты — только оркестрация и проверка. Use when a task needs heavy code generation and the local free model should delegate file writing to cloud Qwen.'
 ---
 
 # Бесплатный рабочий: локальный deepseek free + облачный Qwen (pipeline-qwen-worker)
