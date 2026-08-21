@@ -12,12 +12,18 @@ DeepSeek Harness — оркестратор агентов с веб-UI. opencod
 # 1) синхронизация скилов из git (agent-skills) + старт прокси (8787) + харнесса (3080)
 powershell -ExecutionPolicy Bypass -File E:\ПлагиныРевит\DSH\start-harness.ps1
 
-# 2) только синк скилов (харнесс live-watch'ит папку, рестарт не нужен)
+# 2) то же + автооткрытие веб-UI в браузере (ярлык «DeepSeek Harness» на рабочем столе)
+powershell -ExecutionPolicy Bypass -File E:\ПлагиныРевит\DSH\open-harness.ps1
+
+# 3) только синк скилов (харнесс live-watch'ит папку, рестарт не нужен)
 powershell -ExecutionPolicy Bypass -File E:\ПлагиныРевит\DSH\sync-skills.ps1
 ```
 
 - Скрипты идемпотентны: каждый сервис стартует только если его порт свободен.
 - Прокси: `E:\ПлагиныРевит\DSH\opencode-proxy\opencode_proxy.py` (порт 8787, лог `proxy.log`).
+  Промпт передаётся в opencode **через stdin**, не аргументом: длинный текст со
+  спецсимволами (`{ } | ├── «»`) через `.cmd`-обёртку ломает cmd.exe
+  (`rc=1 Недопустимый параметр командной строки`). Фикс: коммит `96ff86e`.
 - Харнесс: `node E:\ПлагиныРевит\DSH\node_modules\@deepseek-ai\dsh\lib\bin.js --profile web` (порт 3080).
 - Конфиг: `C:\Users\Strakhov\.dsh\settings.yaml` (провайдеры/модели), патчи профиля web — `C:\Users\Strakhov\.dsh\profiles\web\cordis.patch.yml`.
 
@@ -25,12 +31,16 @@ powershell -ExecutionPolicy Bypass -File E:\ПлагиныРевит\DSH\sync-sk
 
 | Провайдер (UI) | Модели |
 |---|---|
-| OpenCode Free | `opencode/deepseek-v4-flash-free`, `opencode/big-pickle` |
+| OpenCode Free | `opencode/deepseek-v4-flash-free`, `opencode/big-pickle` (**текущий дефолт**) |
 | OpenCode GO | `opencode-go/deepseek-v4-flash` (платный шлюз) |
 
 Все идут через прокси :8787, который вызывает `opencode run --model <model>`.
-Известная проблема: у opencode-go долгий первый токен (2–5 мин), харнесс таймаутит
-и ретраит — ретраи порождают дублирующиеся `opencode run`.
+Известные проблемы:
+- у opencode-go долгий первый токен (2–5 мин), харнесс таймаутит и ретраит —
+  ретраи порождают дублирующиеся `opencode run`;
+- flash-free может зависнуть: ход падает с `Request timed out (TIMEOUT)` после
+  ретраев. Лечение: `session.selectModel` на big-pickle + повторный промпт в ту
+  же сессию (история сохраняется).
 
 ## API (общение с харнессом)
 
@@ -102,14 +112,20 @@ DSH умеет создавать и управлять специализиро
   не нужно: пресет = копия standard + свой agent.cordis.yml со скилами
   (скилы уже подключены через skill-filesystem.customSkillDirs).
 
-## Плагины харнесса
+## Плагины и апстрим харнесса
 
-DSH **не опубликован на GitHub** — официальные плагины ставятся из npm
-(scope `@deepseek-ai/dsh-*`, версия rc.7 установлена, rc.8 доступна).
-Все официальные плагины уже стоят локально; сторонние опции (npm, не GitHub):
-`ai-sdk-provider-claude-code`, `ai-sdk-provider-codex-cli`,
-`ai-sdk-provider-opencode-sdk` — подключение внешних агентов (Claude Code,
-codex, opencode) как субагентов через ACP-провайдер.
+- **Upstream на GitHub**: `deepseek-ai/deepseek-harness` (не «dsh» — поиск по
+  короткому имени даёт 404). Официальные плагины ставятся из npm
+  (scope `@deepseek-ai/dsh-*`); локально установлен rc.7, сверять релизы с
+  upstream. Сообщество: Discord `discord.gg/Ycq5dCaS4`, GitHub Discussions.
+- Все официальные плагины уже стоят локально; сторонние опции (npm, не GitHub):
+  `ai-sdk-provider-claude-code`, `ai-sdk-provider-codex-cli`,
+  `ai-sdk-provider-opencode-sdk` — подключение внешних агентов (Claude Code,
+  codex, opencode) как субагентов через ACP-провайдер.
+- **Десктоп-сборка** `RZX00/deepseek-harness-desktop` (Electron поверх того же
+  web-профиля): делит `~/.dsh` (настройки/скилы/сессии подхватились бы как есть),
+  НО закрытие окна убивает харнесс → ломает фоновый API-диспатч. **Решение:
+  остались на headless-схеме** + ярлык «DeepSeek Harness» (`open-harness.ps1`).
 
 ## Скилы
 
