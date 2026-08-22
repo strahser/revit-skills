@@ -30,8 +30,9 @@
 - Revit: revit-api, revit-testing, revit-test-fixtures, revit-test-runner, revit-3d-export,
   revit-json-serialization, threejs-viewer, mcp-setup, revit-wiki, cloud-ai-bridge
 - Конвейер: pipeline-controller, pipeline-executor, pipeline-reviewer, pipeline-planner,
-  pipeline-browser-bridge, pipeline-qwen-worker, pipeline-placement-expert, planning-with-files,
-  architect-review, software-architecture, solid-principles, knowledge-base
+  pipeline-browser-bridge, pipeline-qwen-worker, pipeline-placement-expert, **pipeline-grill**
+  (вопросы владельцу до работы: explore-first, Q-файлы + wait_answer, ASSUMPTION),
+  planning-with-files, architect-review, software-architecture, solid-principles, knowledge-base
 
 ## Быстрые ссылки
 

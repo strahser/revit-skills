@@ -12,6 +12,7 @@
   mcp-setup, revit-wiki, cloud-ai-bridge + скилы конвейера (перенесены из dev-pipeline):
   pipeline-controller, pipeline-executor, pipeline-reviewer, pipeline-planner,
   pipeline-browser-bridge, pipeline-qwen-worker, pipeline-placement-expert,
+  pipeline-grill (grill-фаза: вопросы владельцу через Tasks\Вопросы + wait_answer),
   planning-with-files, architect-review, software-architecture, solid-principles, knowledge-base.
 - Wiki (общая): `.opencode/wiki/index.md` — навигация: общие темы (MCP, workflow,
   структура, дашборд) + **ссылки на локальные вики проектов**.
